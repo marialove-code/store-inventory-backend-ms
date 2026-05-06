@@ -3,6 +3,8 @@ package com.inventory.mapper;
 import com.inventory.entity.SysUser;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
+import java.util.List;
+
 /**
 * @author 95349
 * @description 针对表【sys_user(系统用户表)】的数据库操作Mapper
@@ -10,6 +12,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.inventory.entity.SysUser
 */
 public interface SysUserMapper extends BaseMapper<SysUser> {
+
+
+    List<SysUser> listAll();
 
 }
 

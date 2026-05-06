@@ -14,10 +14,11 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(new LoginInterceptor())
                 .addPathPatterns("/**")
                 .excludePathPatterns(
+                        "/sysUser/**",
                         "/sysUser/login",
                         "/sysUser/register",
                         "/static/**",
-                        "/api/auth/login", // 登录接口
+                        "/auth/login", // 登录接口
                         "/doc.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",

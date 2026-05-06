@@ -23,7 +23,6 @@ public class SysUserController {
 
     @GetMapping("/list")
     public Result<List<SysUser>> list() {
-        String aa= "1";
         return Result.success(sysUserService.list());
     }
 

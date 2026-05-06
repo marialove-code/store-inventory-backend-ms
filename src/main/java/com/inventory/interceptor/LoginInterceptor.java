@@ -19,6 +19,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         HttpSession session = request.getSession();
         SysUser loginUser = (SysUser) session.getAttribute("loginUser");
 
+        System.out.println("拦截到的路径：" + request.getServletPath());
         // 没登录
         if (loginUser == null) {
             response.setContentType("application/json;charset=utf-8");

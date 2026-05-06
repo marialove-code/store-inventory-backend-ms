@@ -1,7 +1,12 @@
 package com.inventory.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 /**
@@ -15,6 +20,7 @@ public class SysUser {
      * 雪花算法ID
      */
     @TableId
+//    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**
@@ -25,6 +31,8 @@ public class SysUser {
     /**
      * BCrypt加密密码
      */
+    @JsonIgnore  // 👈 加上这个注解
+    @TableField(value = "password", select = false)
     private String password;
 
     /**
@@ -51,6 +59,10 @@ public class SysUser {
      * 性别 0未知 1男 2女
      */
     private Integer sex;
+    /**
+     * 年龄
+     */
+    private Integer age;
 
     /**
      * 账号状态 1正常 0禁用
