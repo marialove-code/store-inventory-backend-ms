@@ -1,0 +1,18 @@
+package com.inventory.mapper;
+
+import com.inventory.entity.SysUser;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+
+/**
+* @author 95349
+* @description 针对表【sys_user(系统用户表)】的数据库操作Mapper
+* @createDate 2026-05-05 15:20:47
+* @Entity com.inventory.entity.SysUser
+*/
+public interface SysUserMapper extends BaseMapper<SysUser> {
+
+}
+
+
+
+

@@ -1,0 +1,66 @@
+# 开发环境默认配置
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 3000ms
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://120.53.88.204:5432/inventory_store
+    username: inventory_user
+    password: SJNreZr6rxyT
+    hikari:
+      pool-name: pgsql-pool
+      minimum-idle: 2
+      maximum-pool-size: 16
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    jdbc-type-for-null: "null" # 修正了这里的字符串引号，防止某些解析器报错
+
+knife4j:
+  enable: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.inventory.mapper: debug
+    org.mybatis: debug
+    org.springframework.jdbc: debug
