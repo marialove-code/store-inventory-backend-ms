@@ -16,7 +16,14 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/sysUser/login",
                         "/sysUser/register",
-                        "/static/**"
+                        "/static/**",
+                        "/api/auth/login", // 登录接口
+                        "/doc.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/webjars/**",
+                        "/favicon.ico"
                 );
     }
 

@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 3000ms
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://120.53.88.204:5432/inventory_store
+    username: inventory_user
+    password: SJNreZr6rxyT
+    hikari:
+      pool-name: pgsql-pool
+      minimum-idle: 2
+      maximum-pool-size: 16
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# 打印 SQL 日志（开发/测试/线上全开，方便排错）
+logging:
+  level:
+    com.inventory.mapper: debug
+    org.mybatis: debug
+    org.springframework.jdbc: debug
