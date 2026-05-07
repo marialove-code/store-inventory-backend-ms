@@ -31,8 +31,6 @@ public class SysUser {
     /**
      * BCrypt加密密码
      */
-    @JsonIgnore  // 👈 加上这个注解
-    @TableField(value = "password", select = false)
     private String password;
 
     /**

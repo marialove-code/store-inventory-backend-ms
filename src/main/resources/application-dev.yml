@@ -18,7 +18,7 @@ spring:
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://120.53.88.204:5432/inventory_store
+    url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user
     password: SJNreZr6rxyT
     hikari:
