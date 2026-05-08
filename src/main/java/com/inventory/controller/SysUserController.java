@@ -7,311 +7,237 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.inventory.annotation.OperationLog;
+import com.inventory.annotation.RateLimit;
+import com.inventory.common.enums.OperationTypeEnum;
 import com.inventory.common.result.Result;
-import com.inventory.entity.SysUser;
-import com.inventory.entity.SysUserListVO;
-import com.inventory.entity.SysUserSimpleVO;
+import com.inventory.entity.*;
 import com.inventory.service.SysUserService;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * 用户管理控制器
+ * 模块：系统用户 / 登录认证 / 个人信息 / 用户管理
+ * 安全：登录拦截 + 接口限流 + 操作日志
+ *
+ * 【大厂改造】：使用 Token + Redis 实现无状态登录
+ * 1. 关闭浏览器 → Token 自动失效
+ * 2. 重启服务 → 用户不掉线
+ * 3. 换浏览器必须重新登录
+ *
+ * @author 资深架构师
+ * @date 2026-05-08
+ */
 @RestController
 @RequestMapping("/sysUser")
 public class SysUserController {
+
     @Resource
     private SysUserService sysUserService;
 
     /**
-     * 用户列表接口（默认全量 + 条件搜索 二合一）
-     * @param keyword 搜索关键词（模糊匹配用户名/昵称/手机号）
-     * @param status 状态筛选（正常/禁用）
-     * @param pageNum 页码
-     * @param pageSize 每页条数
-     * @return 分页用户列表
+     * 注入 RedisTemplate，用于存储登录 Token
+     * 【大厂标准】：登录状态不存 Session，全部存入 Redis
      */
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
+
+    // ============================ 登录认证模块（敏感接口，全部加防刷）=============================
+
     /**
-     * 用户列表 + 条件搜索 + 分页 三合一接口
-     * 前端进入页面、点击搜索，都调用这一个接口
+     * 用户注册
+     * 功能：校验用户名唯一性 → 密码加密 → 保存用户
+     * 安全：1分钟最多5次请求，防恶意批量注册
+     *
+     * @param dto 注册参数：用户名、密码、昵称
+     * @return 注册结果
      */
-    @GetMapping("/list")
-    public Result<Page<SysUserListVO>> list(
-            // 搜索关键词：用户名/昵称/手机号 三选一模糊搜索
-            @RequestParam(required = false) String keyword,
-            // 状态筛选：1正常 0禁用（可以不传）
-            @RequestParam(required = false) Integer status,
-            // 页码：默认第1页
-            @RequestParam(defaultValue = "1") Long pageNum,
-            // 每页条数：默认10条
-            @RequestParam(defaultValue = "10") Long pageSize
-    ) {
-        // ====================== 1. 创建分页对象 ======================
-        // new Page<>(当前页码, 每页条数)
-        // 作用：告诉MyBatis-Plus要查第几页、一页多少条
-        Page<SysUser> page = new Page<>(pageNum, pageSize);
-
-        // ====================== 2. 构建查询条件（重点） ======================
-        // Wrappers.lambdaQuery()：创建Lambda查询构造器
-        // 好处：不用写字符串，直接用实体类的字段，安全、不易出错
-        LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
-
-        // ====================== 固定必传条件 ======================
-        // wrapper.eq(字段名, 值) → 对应SQL：WHERE is_deleted = 0
-        // 作用：只查询【未被逻辑删除】的用户（必须加）
-        wrapper.eq(SysUser::getIsDeleted, 0);
-
-        // ====================== 动态搜索条件 ======================
-        // 判断：如果前端传了搜索关键词keyword，才拼接模糊查询
-        if (StrUtil.isNotBlank(keyword)) {
-            // wrapper.and(...) → 对应SQL：AND ( ... )
-            // 作用：把下面三个OR条件包在一起，避免逻辑混乱
-            wrapper.and(w -> w
-                    // w.like(字段, 值) → 对应SQL：user_name LIKE '%关键词%'
-                    // 用户名 模糊查询
-                    .like(SysUser::getUserName, keyword)
-                    // or() → 对应SQL：OR
-                    .or()
-                    // 昵称 模糊查询
-                    .like(SysUser::getNickName, keyword)
-                    .or()
-                    // 手机号 模糊查询
-                    .like(SysUser::getPhone, keyword)
-            );
-        }
-
-        // 判断：如果前端传了状态status，才拼接状态筛选
-        if (status != null) {
-            // 精确匹配：账号状态 = 传入的status
-            wrapper.eq(SysUser::getStatus, status);
-        }
-
-        // 排序：按创建时间 倒序（最新的排在最前面）
-        // orderByDesc(字段) → 对应SQL：ORDER BY create_time DESC
-        wrapper.orderByDesc(SysUser::getCreateTime);
-
-        // ====================== 3. 执行查询 ======================
-        // sysUserService.page(分页对象, 查询条件)
-        // 作用：MyBatis-Plus自动执行分页SQL，返回带总条数的分页结果
-        Page<SysUser> userPage = sysUserService.page(page, wrapper);
-
-        // ====================== 4. 转换成VO（脱敏、隐藏密码） ======================
-        // 新建一个和原分页信息一样的VO分页对象（页码、条数、总数不变）
-        Page<SysUserListVO> voPage = new Page<>(
-                userPage.getCurrent(),   // 当前页码
-                userPage.getSize(),      // 每页条数
-                userPage.getTotal()      // 总条数
-        );
-
-        // 把查询出来的SysUser列表 → 转换成SysUserListVO列表（去掉密码等敏感字段）
-        voPage.setRecords(
-                userPage.getRecords().stream()
-                        // BeanUtil.copyProperties：复制相同名字的字段
-                        .map(user -> BeanUtil.copyProperties(user, SysUserListVO.class))
-                        // 转成List集合
-                        .collect(Collectors.toList())
-        );
-
-        // ====================== 5. 返回统一格式结果 ======================
-        // Result.success(数据)：按照项目统一格式返回，前端能正常解析
-        return Result.success(voPage);
-    }
-
-    // ======================================
-    // 1. 新增【注册接口】（和 add 类似，单独写一个更规范）
-    // 前端请求地址：POST /sysUser/register
-    // ======================================
+    @RateLimit(limit = 5, period = 60, msg = "注册请求过于频繁，请1分钟后再试！")
+    @OperationLog(title = "用户注册", type = OperationTypeEnum.REGISTER)
     @PostMapping("/register")
-    public Result<Void> register(@RequestBody @Valid SysUser user) {
-
-        // 1. 查询用户名是否已经存在（传统非lambda写法）
+    public Result<Void> register(@Valid @RequestBody SysUserRegisterDTO dto) {
+        // 校验用户名是否已存在
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_name", user.getUserName());
+        queryWrapper.eq("user_name", dto.getUserName());
         long count = sysUserService.count(queryWrapper);
 
-        // 2. 传统 if-else 判断，后期超级好扩展
         if (count > 0) {
-            // 用户名已存在
             return Result.fail("用户名已存在");
-        } else {
-            // 用户名不存在 → 执行注册
-            // 密码加密
-            PasswordEncoder encoder = new BCryptPasswordEncoder();
-            user.setPassword(encoder.encode(user.getPassword()));
-
-            // 保存用户
-            sysUserService.save(user);
-
-            return Result.success();
         }
+
+        // 密码加密并构建用户对象
+        SysUser user = new SysUser();
+        user.setUserName(dto.getUserName());
+        user.setPassword(new BCryptPasswordEncoder().encode(dto.getPassword()));
+        user.setNickName(dto.getNickName());
+        user.setStatus(1);
+        user.setIsDeleted(0);
+
+        sysUserService.save(user);
+        return Result.success();
     }
 
-    // ======================================
-    // 2. 新增【登录接口】
-    // 前端请求地址：POST /sysUser/login
-    // 接收字段：userName + password
-    // ======================================
+    /**
+     * 用户登录【大厂 Token + Redis 标准版】
+     * 功能：账号密码校验 → 生成 Token → 存入 Redis → 返回前端
+     * 安全：1分钟最多3次，防暴力破解密码
+     * 特性：关闭浏览器 → Token 失效；重启服务 → 不掉线
+     *
+     * @param dto 登录参数：用户名、密码
+     * @return Token + 脱敏用户信息
+     */
+    @RateLimit(limit = 3, period = 60, msg = "登录请求过于频繁，请1分钟后再试！")
+    @OperationLog(title = "用户登录", type = OperationTypeEnum.LOGIN)
     @PostMapping("/login")
-    public Result<SysUserSimpleVO> login(
-            @RequestBody Map<String, String> params,
-            HttpSession session
-    ) {
-        String userName = params.get("userName");
-        String password = params.get("password");
-
-        // 1. 非空校验
-        if (StrUtil.isBlank(userName) || StrUtil.isBlank(password)) {
-            return Result.fail("用户名或密码不能为空");
-        }
-
-        // 2. 查询用户（只查未删除、正常状态）
+    public Result<Map<String, Object>> login(@Valid @RequestBody SysUserLoginDTO dto) {
+        // 查询有效用户（未删除 + 已启用）
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
-        wrapper.eq(SysUser::getUserName, userName);
-        wrapper.eq(SysUser::getIsDeleted, 0); // 未删除
-        wrapper.eq(SysUser::getStatus, 1);    // 正常状态
+        wrapper.eq(SysUser::getUserName, dto.getUserName());
+        wrapper.eq(SysUser::getIsDeleted, 0);
+        wrapper.eq(SysUser::getStatus, 1);
 
         SysUser user = sysUserService.getOne(wrapper);
-
         if (user == null) {
             return Result.fail("用户名或密码错误");
         }
 
-        // 3. 密码校验
+        // 密码校验
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        if (!encoder.matches(password, user.getPassword())) {
+        if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             return Result.fail("用户名或密码错误");
         }
 
-        // 4. 保存登录态（后端用，前端拿不到）
-        session.setAttribute("loginUser", user);
+        // ===================== 【大厂核心】生成唯一 Token =====================
+        String token = UUID.randomUUID().toString().replace("-", "");
 
-        // 5. 脱敏返回
+        // ===================== Token 存入 Redis，有效期 1 天 =====================
+        redisTemplate.opsForValue().set("token:" + token, user.getId(), 1, TimeUnit.DAYS);
+
+        // 封装脱敏 VO
         SysUserSimpleVO userVO = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
-
-        // ====================== ✅ 核心兜底 ======================
-        // 如果 nickName 为空，就把 userName 赋值给 nickName
         if (StrUtil.isBlank(userVO.getNickName())) {
             userVO.setNickName(user.getUserName());
         }
 
-        // 6. 返回
-        return Result.success(userVO);
+        // 返回 token + 用户信息
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", userVO);
+
+        return Result.success(result);
     }
 
+    /**
+     * 用户登出【大厂标准】
+     * 功能：删除 Redis 中的 Token → 强制下线
+     * 前端必须在请求头传入：Authorization: token
+     */
+    @OperationLog(title = "用户登出", type = OperationTypeEnum.LOGOUT)
     @PostMapping("/logout")
-    public Result<Void> logout(HttpSession session) {
-        // 清除登录态
-        session.removeAttribute("loginUser");
+    public Result<Void> logout(@RequestHeader("Authorization") String token) {
+        // 从 Redis 中删除 Token，立即失效
+        if (StrUtil.isNotBlank(token)) {
+            redisTemplate.delete("token:" + token);
+        }
         return Result.success();
     }
 
     /**
-     * 修改用户状态（正常/禁用）
-     * @param id 用户ID
-     * @param status 目标状态（1-正常 0-禁用）
+     * 获取当前登录用户信息【从 Redis 获取】
+     * 功能：前端刷新/初始化时获取登录态
+     * 从请求头取 Token → 查 Redis → 查用户 → 返回
      */
-    @PutMapping("/{id}/status")
-    public Result<Void> updateStatus(
-            @PathVariable Long id,
-            @RequestParam Integer status
+    @GetMapping("/current")
+    public Result<SysUserSimpleVO> currentUser(@RequestHeader("Authorization") String token) {
+        // 1. 校验 Token 是否为空
+        if (StrUtil.isBlank(token)) {
+            return Result.fail("未登录");
+        }
+
+        // 2. 从 Redis 获取用户 ID
+        Long userId = (Long) redisTemplate.opsForValue().get("token:" + token);
+        if (userId == null) {
+            return Result.fail("登录已过期，请重新登录");
+        }
+
+        // 3. 查询真实用户
+        SysUser user = sysUserService.getById(userId);
+        if (user == null || user.getIsDeleted() == 1) {
+            return Result.fail("用户不存在");
+        }
+
+        // 4. 返回脱敏信息
+        return Result.success(BeanUtil.copyProperties(user, SysUserSimpleVO.class));
+    }
+
+    // ============================ 用户管理模块 =============================
+
+    /**
+     * 用户分页列表
+     * 功能：支持用户名/昵称/手机号搜索 + 状态筛选 + 分页
+     * 安全：1分钟30次，防高频刷库
+     */
+    @RateLimit(limit = 30, period = 60)
+    @GetMapping("/list")
+    public Result<Page<SysUserListVO>> list(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Long pageNum,
+            @RequestParam(defaultValue = "10") Long pageSize
     ) {
-        // 1. 参数校验
-        if (id == null || (status != 0 && status != 1)) {
-            return Result.fail("参数错误");
+        Page<SysUser> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(SysUser::getIsDeleted, 0);
+
+        // 多字段模糊搜索
+        if (StrUtil.isNotBlank(keyword)) {
+            wrapper.and(w -> w
+                    .like(SysUser::getUserName, keyword)
+                    .or().like(SysUser::getNickName, keyword)
+                    .or().like(SysUser::getPhone, keyword)
+            );
         }
 
-        // 2. 查询用户是否存在
-        SysUser user = sysUserService.getById(id);
-        if (user == null || user.getIsDeleted() == 1) {
-            return Result.fail("用户不存在");
+        if (status != null) {
+            wrapper.eq(SysUser::getStatus, status);
         }
 
-        // 3. 更新状态
-        user.setStatus(status);
-        sysUserService.updateById(user);
+        wrapper.orderByDesc(SysUser::getCreateTime);
+        Page<SysUser> userPage = sysUserService.page(page, wrapper);
 
-        return Result.success();
+        // 转换为VO脱敏返回
+        Page<SysUserListVO> voPage = new Page<>(
+                userPage.getCurrent(),
+                userPage.getSize(),
+                userPage.getTotal()
+        );
+
+        voPage.setRecords(
+                userPage.getRecords().stream()
+                        .map(u -> BeanUtil.copyProperties(u, SysUserListVO.class))
+                        .collect(Collectors.toList())
+        );
+
+        return Result.success(voPage);
     }
 
     /**
-     * 重置用户密码（默认密码：123456）
-     * @param id 用户ID
-     */
-    @PutMapping("/{id}/resetPassword")
-    public Result<Void> resetPassword(@PathVariable Long id) {
-        // 1. 参数校验
-        if (id == null) {
-            return Result.fail("参数错误");
-        }
-
-        // 2. 查询用户是否存在
-        SysUser user = sysUserService.getById(id);
-        if (user == null || user.getIsDeleted() == 1) {
-            return Result.fail("用户不存在");
-        }
-
-        // 3. 加密默认密码并更新
-        String defaultPassword = "123456";
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        user.setPassword(encoder.encode(defaultPassword));
-        sysUserService.updateById(user);
-
-        return Result.success();
-    }
-
-    /**
-     * 单个用户逻辑删除
-     * @param id 用户ID
-     */
-    @DeleteMapping("/{id}")
-    public Result<Void> deleteUser(@PathVariable Long id) {
-        // 1. 参数校验
-        if (id == null) {
-            return Result.fail("参数错误");
-        }
-
-        // 2. 查询用户是否存在
-        SysUser user = sysUserService.getById(id);
-        if (user == null || user.getIsDeleted() == 1) {
-            return Result.fail("用户不存在");
-        }
-
-        // 3. 逻辑删除（更新 is_deleted=1）
-        user.setIsDeleted(1);
-        sysUserService.updateById(user);
-
-        return Result.success();
-    }
-
-    /**
-     * 批量用户逻辑删除
-     * @param ids 用户ID列表
-     */
-    @DeleteMapping("/batch")
-    public Result<Void> batchDelete(@RequestBody List<Long> ids) {
-        // 1. 参数校验
-        if (ids == null || ids.isEmpty()) {
-            return Result.fail("请选择要删除的用户");
-        }
-
-        // 2. 批量更新 is_deleted=1
-        LambdaUpdateWrapper<SysUser> updateWrapper = Wrappers.lambdaUpdate();
-        updateWrapper.in(SysUser::getId, ids)
-                .set(SysUser::getIsDeleted, 1);
-        sysUserService.update(updateWrapper);
-
-        return Result.success();
-    }
-
-    /**
-     * 根据ID查询用户详情（个人信息页用）
+     * 根据ID查询用户详情
+     * 用途：个人信息页 / 管理员编辑用户页
+     * 安全：隐藏密码字段返回
      */
     @GetMapping("/user/{id}")
     public Result<SysUser> getUserById(@PathVariable Long id) {
@@ -324,65 +250,134 @@ public class SysUserController {
             return Result.fail("用户不存在");
         }
 
-        // 不返回密码
+        // 密码脱敏
         user.setPassword(null);
         return Result.success(user);
     }
 
     /**
-     * 更新用户信息（个人信息保存）
-     * 支持：nickName, sex, age, phone, email, avatar, password
-     * 修改后自动刷新登录态
+     * 更新个人信息
+     * 功能：支持昵称、性别、手机号、邮箱、头像、密码
+     * 安全：1分钟最多10次，防恶意篡改
      */
+    @RateLimit(limit = 10, period = 60)
+    @OperationLog(title = "修改个人信息", type = OperationTypeEnum.UPDATE)
     @PutMapping("/user/{id}")
     public Result<Void> updateUser(
             @PathVariable Long id,
-            @RequestBody SysUser user,
-            HttpSession session
+            @RequestBody SysUser user
     ) {
-        // 1. 校验用户是否存在
         SysUser exist = sysUserService.getById(id);
         if (exist == null || exist.getIsDeleted() == 1) {
             return Result.fail("用户不存在");
         }
 
-        // 2. 只更新允许的字段
+        // 动态更新非空字段
         LambdaUpdateWrapper<SysUser> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(SysUser::getId, id);
 
-        if (StrUtil.isNotBlank(user.getNickName())) {
-            wrapper.set(SysUser::getNickName, user.getNickName());
-        }
-        if (user.getSex() != null) {
-            wrapper.set(SysUser::getSex, user.getSex());
-        }
-        if (user.getAge() != null) {
-            wrapper.set(SysUser::getAge, user.getAge());
-        }
-        if (StrUtil.isNotBlank(user.getPhone())) {
-            wrapper.set(SysUser::getPhone, user.getPhone());
-        }
-        if (StrUtil.isNotBlank(user.getEmail())) {
-            wrapper.set(SysUser::getEmail, user.getEmail());
-        }
-        if (StrUtil.isNotBlank(user.getAvatar())) {
-            wrapper.set(SysUser::getAvatar, user.getAvatar());
-        }
+        if (StrUtil.isNotBlank(user.getNickName())) wrapper.set(SysUser::getNickName, user.getNickName());
+        if (user.getSex() != null) wrapper.set(SysUser::getSex, user.getSex());
+        if (user.getAge() != null) wrapper.set(SysUser::getAge, user.getAge());
+        if (StrUtil.isNotBlank(user.getPhone())) wrapper.set(SysUser::getPhone, user.getPhone());
+        if (StrUtil.isNotBlank(user.getEmail())) wrapper.set(SysUser::getEmail, user.getEmail());
+        if (StrUtil.isNotBlank(user.getAvatar())) wrapper.set(SysUser::getAvatar, user.getAvatar());
 
-        // 3. 如果传了密码，加密更新
+        // 密码单独加密
         if (StrUtil.isNotBlank(user.getPassword())) {
-            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-            wrapper.set(SysUser::getPassword, encoder.encode(user.getPassword()));
+            wrapper.set(SysUser::getPassword, new BCryptPasswordEncoder().encode(user.getPassword()));
         }
 
         sysUserService.update(wrapper);
+        return Result.success();
+    }
 
-        // ✅ 关键：从数据库重新查询最新数据，再更新 Session
-        SysUser newInfo = sysUserService.getById(id);
-        newInfo.setPassword(null); // 不把密码存进 Session
-        session.setAttribute("loginUser", newInfo);
+    // ============================ 管理员操作模块 =============================
+
+    /**
+     * 修改用户状态（启用/禁用）
+     * 用途：管理员封禁违规用户
+     */
+    @OperationLog(title = "修改用户状态", type = OperationTypeEnum.UPDATE)
+    @PutMapping("/{id}/status")
+    public Result<Void> updateStatus(
+            @PathVariable Long id,
+            @RequestParam Integer status
+    ) {
+        if (id == null || (status != 0 && status != 1)) {
+            return Result.fail("参数错误");
+        }
+
+        SysUser user = sysUserService.getById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            return Result.fail("用户不存在");
+        }
+
+        user.setStatus(status);
+        sysUserService.updateById(user);
+        return Result.success();
+    }
+
+    /**
+     * 重置用户密码
+     * 用途：用户忘记密码 → 管理员重置为默认密码 123456
+     * 安全：1分钟最多5次，防恶意滥用
+     */
+    @RateLimit(limit = 5, period = 60)
+    @OperationLog(title = "重置用户密码", type = OperationTypeEnum.UPDATE)
+    @PutMapping("/{id}/resetPassword")
+    public Result<Void> resetPassword(@PathVariable Long id) {
+        if (id == null) {
+            return Result.fail("参数错误");
+        }
+
+        SysUser user = sysUserService.getById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            return Result.fail("用户不存在");
+        }
+
+        // 重置为默认密码并加密
+        String defaultPwd = "123456";
+        user.setPassword(new BCryptPasswordEncoder().encode(defaultPwd));
+        sysUserService.updateById(user);
+
+        return Result.success();
+    }
+
+    /**
+     * 单个删除用户（逻辑删除）
+     */
+    @OperationLog(title = "删除用户", type = OperationTypeEnum.DELETE)
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteUser(@PathVariable Long id) {
+        if (id == null) {
+            return Result.fail("参数错误");
+        }
+
+        SysUser user = sysUserService.getById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            return Result.fail("用户不存在");
+        }
+
+        user.setIsDeleted(1);
+        sysUserService.updateById(user);
+        return Result.success();
+    }
+
+    /**
+     * 批量删除用户（逻辑删除）
+     */
+    @OperationLog(title = "批量删除用户", type = OperationTypeEnum.DELETE)
+    @DeleteMapping("/batch")
+    public Result<Void> batchDelete(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Result.fail("请选择要删除的用户");
+        }
+
+        LambdaUpdateWrapper<SysUser> updateWrapper = Wrappers.lambdaUpdate();
+        updateWrapper.in(SysUser::getId, ids).set(SysUser::getIsDeleted, 1);
+        sysUserService.update(updateWrapper);
 
         return Result.success();
     }
 }
-

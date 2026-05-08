@@ -5,16 +5,17 @@ server:
 spring:
   data:
     redis:
-      host: 127.0.0.1
+      host: 120.53.88.204
       port: 6379
-      database: 0
-      timeout: 3000ms
+      password: "Maria%@)1314"
+      database: 1
+      connect-timeout: 10s
       lettuce:
         pool:
-          max-active: 32
-          max-idle: 16
-          min-idle: 4
-          max-wait: 3000ms
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
 
   datasource:
     driver-class-name: org.postgresql.Driver
