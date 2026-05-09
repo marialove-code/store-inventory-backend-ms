@@ -2,6 +2,7 @@ package com.inventory.common.exception;
 
 import java.util.stream.Collectors;
 
+import com.inventory.exception.PermissionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -103,5 +104,15 @@ public class GlobalExceptionHandler {
     public Result<Void> handleException(Exception ex) {
         log.error("【系统未知异常】", ex);
         return Result.fail(ResultCode.SYSTEM_ERROR);
+    }
+    /**
+     * 权限校验异常处理
+     */
+    @ExceptionHandler(PermissionException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN) // 返回 403 状态码
+    public Result<Void> handlePermissionException(PermissionException ex) {
+        log.warn("【权限异常】{}", ex);
+        // 假设你的 ResultCode 中有无权限的定义，或者直接 fail
+        return Result.fail(ResultCode.FORBIDDEN);
     }
 }

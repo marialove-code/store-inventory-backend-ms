@@ -9,9 +9,14 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.inventory.annotation.OperationLog;
 import com.inventory.annotation.RateLimit;
+import com.inventory.annotation.RequiresPerm;
 import com.inventory.common.enums.OperationTypeEnum;
 import com.inventory.common.result.Result;
 import com.inventory.entity.*;
+import com.inventory.entity.login.LoginUserVO;
+import com.inventory.service.SysPermissionService;
+import com.inventory.service.SysRoleService;
+import com.inventory.service.SysUserRoleService;
 import com.inventory.service.SysUserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.Cookie;
@@ -48,28 +53,26 @@ public class SysUserController {
     @Resource
     private SysUserService sysUserService;
 
-    /**
-     * 注入 RedisTemplate，用于存储登录 Token
-     * 【大厂标准】：登录状态不存 Session，全部存入 Redis
-     */
+    @Resource
+    private SysRoleService sysRoleService;
+
+    @Resource
+    private SysUserRoleService sysUserRoleService;
+
+
+
+    @Resource
+    private SysPermissionService sysPermissionService;
+
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
-    // ============================ 登录认证模块（敏感接口，全部加防刷）=============================
+    // ============================ 登录认证模块 =============================
 
-    /**
-     * 用户注册
-     * 功能：校验用户名唯一性 → 密码加密 → 保存用户
-     * 安全：1分钟最多5次请求，防恶意批量注册
-     *
-     * @param dto 注册参数：用户名、密码、昵称
-     * @return 注册结果
-     */
     @RateLimit(limit = 5, period = 60, msg = "注册请求过于频繁，请1分钟后再试！")
     @OperationLog(title = "用户注册", type = OperationTypeEnum.REGISTER)
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody SysUserRegisterDTO dto) {
-        // 校验用户名是否已存在
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_name", dto.getUserName());
         long count = sysUserService.count(queryWrapper);
@@ -78,7 +81,6 @@ public class SysUserController {
             return Result.fail("用户名已存在");
         }
 
-        // 密码加密并构建用户对象
         SysUser user = new SysUser();
         user.setUserName(dto.getUserName());
         user.setPassword(new BCryptPasswordEncoder().encode(dto.getPassword()));
@@ -87,52 +89,63 @@ public class SysUserController {
         user.setIsDeleted(0);
 
         sysUserService.save(user);
+
+        // ====================== 自动绑定【普通用户】角色 ======================
+        SysUserRole userRole = new SysUserRole();
+        userRole.setUserId(user.getId());    // 刚注册的用户ID
+        userRole.setRoleId(3L);              // 普通用户角色ID固定为3
+        sysUserRoleService.save(userRole);
+        // ====================================================================
+
         return Result.success();
     }
 
-    /**
-     * 用户登录【大厂 Token + Redis 标准版】
-     * 功能：账号密码校验 → 生成 Token → 存入 Redis → 返回前端
-     * 安全：1分钟最多3次，防暴力破解密码
-     * 特性：关闭浏览器 → Token 失效；重启服务 → 不掉线
-     *
-     * @param dto 登录参数：用户名、密码
-     * @return Token + 脱敏用户信息
-     */
     @RateLimit(limit = 3, period = 60, msg = "登录请求过于频繁，请1分钟后再试！")
     @OperationLog(title = "用户登录", type = OperationTypeEnum.LOGIN)
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@Valid @RequestBody SysUserLoginDTO dto) {
-        // 查询有效用户（未删除 + 已启用）
+    public Result<Map<String, Object>> login(
+            @Valid @RequestBody SysUserLoginDTO dto) {
+
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUser::getUserName, dto.getUserName());
         wrapper.eq(SysUser::getIsDeleted, 0);
         wrapper.eq(SysUser::getStatus, 1);
 
         SysUser user = sysUserService.getOne(wrapper);
+
         if (user == null) {
             return Result.fail("用户名或密码错误");
         }
 
-        // 密码校验
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             return Result.fail("用户名或密码错误");
         }
 
-        // ===================== 【大厂核心】生成唯一 Token =====================
         String token = UUID.randomUUID().toString().replace("-", "");
 
-        // ===================== Token 存入 Redis，有效期 1 天 =====================
-        redisTemplate.opsForValue().set("token:" + token, user.getId(), 1, TimeUnit.DAYS);
+        List<String> roles = sysRoleService.listRoleCodesByUserId(user.getId());
+        List<String> permissions = sysPermissionService.listPermCodesByUserId(user.getId());
 
-        // 封装脱敏 VO
+        LoginUserVO loginUser = new LoginUserVO();
+        loginUser.setUserId(user.getId());
+        loginUser.setUsername(user.getUserName());
+        loginUser.setRoles(roles);
+        loginUser.setPermissions(permissions);
+        loginUser.setAdmin(roles.contains("SUPER_ADMIN"));
+
+        redisTemplate.opsForValue().set(
+                "token:" + token,
+                loginUser,
+                1,
+                TimeUnit.DAYS
+        );
+
         SysUserSimpleVO userVO = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
         if (StrUtil.isBlank(userVO.getNickName())) {
             userVO.setNickName(user.getUserName());
         }
 
-        // 返回 token + 用户信息
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("user", userVO);
@@ -140,58 +153,56 @@ public class SysUserController {
         return Result.success(result);
     }
 
-    /**
-     * 用户登出【大厂标准】
-     * 功能：删除 Redis 中的 Token → 强制下线
-     * 前端必须在请求头传入：Authorization: token
-     */
     @OperationLog(title = "用户登出", type = OperationTypeEnum.LOGOUT)
     @PostMapping("/logout")
     public Result<Void> logout(@RequestHeader("Authorization") String token) {
-        // 从 Redis 中删除 Token，立即失效
         if (StrUtil.isNotBlank(token)) {
             redisTemplate.delete("token:" + token);
         }
         return Result.success();
     }
 
-    /**
-     * 获取当前登录用户信息【从 Redis 获取】
-     * 功能：前端刷新/初始化时获取登录态
-     * 从请求头取 Token → 查 Redis → 查用户 → 返回
-     */
     @GetMapping("/current")
     public Result<SysUserSimpleVO> currentUser(@RequestHeader("Authorization") String token) {
-        // 1. 校验 Token 是否为空
         if (StrUtil.isBlank(token)) {
             return Result.fail("未登录");
         }
 
-        // 2. 从 Redis 获取用户 ID
-        Long userId = (Long) redisTemplate.opsForValue().get("token:" + token);
-        if (userId == null) {
+        // 1. 从 Redis 中获取存入的对象
+        Object cachedData = redisTemplate.opsForValue().get("token:" + token);
+        if (cachedData == null) {
             return Result.fail("登录已过期，请重新登录");
         }
 
-        // 3. 查询真实用户
-        SysUser user = sysUserService.getById(userId);
-        if (user == null || user.getIsDeleted() == 1) {
-            return Result.fail("用户不存在");
+        // 2. 提取 userId (确保类型安全)
+        Long userId;
+        if (cachedData instanceof LoginUserVO) {
+            userId = ((LoginUserVO) cachedData).getUserId();
+        } else {
+            // 如果你的 Redis 配置了特定序列化，有时可能会返回 JSON 或 Map，这里做下兼容
+            return Result.fail("登录状态异常");
         }
 
-        // 4. 返回脱敏信息
-        return Result.success(BeanUtil.copyProperties(user, SysUserSimpleVO.class));
+        // 3. 根据 ID 查询数据库
+        SysUser user = sysUserService.getById(userId);
+        if (user == null || user.getIsDeleted() == 1) {
+            return Result.fail("用户不存在或已被删除");
+        }
+
+        // 4. 返回 VO 对象
+        SysUserSimpleVO userVO = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
+        if (StrUtil.isBlank(userVO.getNickName())) {
+            userVO.setNickName(user.getUserName());
+        }
+
+        return Result.success(userVO);
     }
 
     // ============================ 用户管理模块 =============================
 
-    /**
-     * 用户分页列表
-     * 功能：支持用户名/昵称/手机号搜索 + 状态筛选 + 分页
-     * 安全：1分钟30次，防高频刷库
-     */
     @RateLimit(limit = 30, period = 60)
     @GetMapping("/list")
+    @RequiresPerm("system:user:list")
     public Result<Page<SysUserListVO>> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
@@ -202,7 +213,6 @@ public class SysUserController {
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUser::getIsDeleted, 0);
 
-        // 多字段模糊搜索
         if (StrUtil.isNotBlank(keyword)) {
             wrapper.and(w -> w
                     .like(SysUser::getUserName, keyword)
@@ -218,7 +228,6 @@ public class SysUserController {
         wrapper.orderByDesc(SysUser::getCreateTime);
         Page<SysUser> userPage = sysUserService.page(page, wrapper);
 
-        // 转换为VO脱敏返回
         Page<SysUserListVO> voPage = new Page<>(
                 userPage.getCurrent(),
                 userPage.getSize(),
@@ -234,12 +243,8 @@ public class SysUserController {
         return Result.success(voPage);
     }
 
-    /**
-     * 根据ID查询用户详情
-     * 用途：个人信息页 / 管理员编辑用户页
-     * 安全：隐藏密码字段返回
-     */
     @GetMapping("/user/{id}")
+    @RequiresPerm("system:user:list")
     public Result<SysUser> getUserById(@PathVariable Long id) {
         if (id == null) {
             return Result.fail("参数错误");
@@ -250,16 +255,10 @@ public class SysUserController {
             return Result.fail("用户不存在");
         }
 
-        // 密码脱敏
         user.setPassword(null);
         return Result.success(user);
     }
 
-    /**
-     * 更新个人信息
-     * 功能：支持昵称、性别、手机号、邮箱、头像、密码
-     * 安全：1分钟最多10次，防恶意篡改
-     */
     @RateLimit(limit = 10, period = 60)
     @OperationLog(title = "修改个人信息", type = OperationTypeEnum.UPDATE)
     @PutMapping("/user/{id}")
@@ -272,7 +271,6 @@ public class SysUserController {
             return Result.fail("用户不存在");
         }
 
-        // 动态更新非空字段
         LambdaUpdateWrapper<SysUser> wrapper = Wrappers.lambdaUpdate();
         wrapper.eq(SysUser::getId, id);
 
@@ -283,7 +281,6 @@ public class SysUserController {
         if (StrUtil.isNotBlank(user.getEmail())) wrapper.set(SysUser::getEmail, user.getEmail());
         if (StrUtil.isNotBlank(user.getAvatar())) wrapper.set(SysUser::getAvatar, user.getAvatar());
 
-        // 密码单独加密
         if (StrUtil.isNotBlank(user.getPassword())) {
             wrapper.set(SysUser::getPassword, new BCryptPasswordEncoder().encode(user.getPassword()));
         }
@@ -294,12 +291,9 @@ public class SysUserController {
 
     // ============================ 管理员操作模块 =============================
 
-    /**
-     * 修改用户状态（启用/禁用）
-     * 用途：管理员封禁违规用户
-     */
     @OperationLog(title = "修改用户状态", type = OperationTypeEnum.UPDATE)
     @PutMapping("/{id}/status")
+    @RequiresPerm("system:user:changeStatus")
     public Result<Void> updateStatus(
             @PathVariable Long id,
             @RequestParam Integer status
@@ -318,14 +312,10 @@ public class SysUserController {
         return Result.success();
     }
 
-    /**
-     * 重置用户密码
-     * 用途：用户忘记密码 → 管理员重置为默认密码 123456
-     * 安全：1分钟最多5次，防恶意滥用
-     */
     @RateLimit(limit = 5, period = 60)
     @OperationLog(title = "重置用户密码", type = OperationTypeEnum.UPDATE)
     @PutMapping("/{id}/resetPassword")
+    @RequiresPerm("system:user:resetPwd")
     public Result<Void> resetPassword(@PathVariable Long id) {
         if (id == null) {
             return Result.fail("参数错误");
@@ -336,7 +326,6 @@ public class SysUserController {
             return Result.fail("用户不存在");
         }
 
-        // 重置为默认密码并加密
         String defaultPwd = "123456";
         user.setPassword(new BCryptPasswordEncoder().encode(defaultPwd));
         sysUserService.updateById(user);
@@ -344,11 +333,9 @@ public class SysUserController {
         return Result.success();
     }
 
-    /**
-     * 单个删除用户（逻辑删除）
-     */
     @OperationLog(title = "删除用户", type = OperationTypeEnum.DELETE)
     @DeleteMapping("/{id}")
+    @RequiresPerm("system:user:delete")
     public Result<Void> deleteUser(@PathVariable Long id) {
         if (id == null) {
             return Result.fail("参数错误");
@@ -364,11 +351,9 @@ public class SysUserController {
         return Result.success();
     }
 
-    /**
-     * 批量删除用户（逻辑删除）
-     */
     @OperationLog(title = "批量删除用户", type = OperationTypeEnum.DELETE)
     @DeleteMapping("/batch")
+    @RequiresPerm("system:user:delete")
     public Result<Void> batchDelete(@RequestBody List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Result.fail("请选择要删除的用户");
