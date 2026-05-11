@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j
 @Aspect
 @Component
-@Order(1)
+@Order(2)
 public class PermissionAspect {
 
     @Resource

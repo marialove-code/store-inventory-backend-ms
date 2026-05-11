@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 @Aspect
 @Component
 @RequiredArgsConstructor
-@Order(2)
+@Order(3)
 public class OperationLogAspect {
 
     private final SysOperationLogService operationLogService;

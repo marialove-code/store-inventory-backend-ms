@@ -1,0 +1,184 @@
+package com.inventory.common.utils;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.UUID;
+
+/**
+ * JWT 工具类
+ * 支持双Token：AccessToken 业务鉴权、RefreshToken 无感刷新
+ */
+@Slf4j
+@Component
+public class JwtUtil {
+
+    // 自定义载荷Key常量
+    private static final String CLAIM_USER_ID = "userId";
+    private static final String CLAIM_USERNAME = "username";
+    private static final String CLAIM_TOKEN_TYPE = "tokenType";
+
+    // Token类型标识常量
+    public static final String ACCESS_TOKEN = "access";
+    public static final String REFRESH_TOKEN = "refresh";
+
+    // 从配置文件读取JWT秘钥
+    @Value("${jwt.secret}")
+    private String secret;
+
+    // AccessToken过期时间 单位分钟
+    @Value("${jwt.access-expire}")
+    private Long accessExpire;
+
+    // RefreshToken过期时间 单位分钟
+    @Value("${jwt.refresh-expire}")
+    private Long refreshExpire;
+
+    /**
+     * 根据配置的秘钥生成加密签名密钥
+     * 采用HMAC SHA256算法
+     */
+    private SecretKey getSecretKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 生成 访问令牌 AccessToken
+     * 用于接口正常鉴权，有效期短
+     */
+    public String createAccessToken(Long userId, String username) {
+        return createToken(userId, username, ACCESS_TOKEN, accessExpire);
+    }
+
+    /**
+     * 生成 刷新令牌 RefreshToken
+     * 用于AccessToken过期后换新令牌，有效期长
+     */
+    public String createRefreshToken(Long userId, String username) {
+        return createToken(userId, username, REFRESH_TOKEN, refreshExpire);
+    }
+
+    /**
+     * 通用创建Token方法
+     * @param userId 用户ID
+     * @param username 用户名
+     * @param tokenType 令牌类型 access/refresh
+     * @param expireMinutes 过期时间(分钟)
+     * @return 生成的JWT令牌字符串
+     */
+    private String createToken(Long userId,
+                               String username,
+                               String tokenType,
+                               Long expireMinutes) {
+        // 当前时间
+        Date now = new Date();
+        // 计算过期时间
+        Date expireDate = new Date(now.getTime() + expireMinutes * 60 * 1000);
+
+        // 构建JWT
+        return Jwts.builder()
+                // 设置JWT唯一ID
+                .setId(UUID.randomUUID().toString())
+                // 自定义载荷存放用户信息和令牌类型
+                .claim(CLAIM_USER_ID, userId)
+                .claim(CLAIM_USERNAME, username)
+                .claim(CLAIM_TOKEN_TYPE, tokenType)
+                // 签发时间
+                .setIssuedAt(now)
+                // 过期时间
+                .setExpiration(expireDate)
+                // 加密签名
+                .signWith(getSecretKey(), SignatureAlgorithm.HS256)
+                // 压缩为字符串
+                .compact();
+    }
+
+    /**
+     * 解析JWT令牌，获取载荷Claims
+     * 捕获各类异常并打印日志
+     * @param token JWT令牌
+     * @return 载荷信息 解析失败返回null
+     */
+    public Claims parseToken(String token) {
+        try {
+            // 新版JJWT标准解析方式
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSecretKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            log.error("Token已过期");
+        } catch (UnsupportedJwtException e) {
+            log.error("Token格式不支持");
+        } catch (MalformedJwtException e) {
+            log.error("Token非法篡改或格式错误");
+        } catch (SignatureException e) {
+            log.error("Token签名校验失败，秘钥不匹配或被篡改");
+        } catch (IllegalArgumentException e) {
+            log.error("Token为空字符串");
+        }
+        return null;
+    }
+
+    /**
+     * 校验是否为合法的AccessToken
+     * @param token 令牌
+     * @return 合法true 非法false
+     */
+    public boolean validateAccessToken(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return false;
+        }
+        // 校验令牌类型必须是access
+        return ACCESS_TOKEN.equals(claims.get(CLAIM_TOKEN_TYPE));
+    }
+
+    /**
+     * 校验是否为合法的RefreshToken
+     * @param token 令牌
+     * @return 合法true 非法false
+     */
+    public boolean validateRefreshToken(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return false;
+        }
+        // 校验令牌类型必须是refresh
+        return REFRESH_TOKEN.equals(claims.get(CLAIM_TOKEN_TYPE));
+    }
+
+    /**
+     * 从Token中获取用户ID
+     * @param token 令牌
+     * @return 用户ID 解析失败返回null
+     */
+    public Long getUserId(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return null;
+        }
+        return Long.valueOf(claims.get(CLAIM_USER_ID).toString());
+    }
+
+    /**
+     * 从Token中获取用户名
+     * @param token 令牌
+     * @return 用户名 解析失败返回null
+     */
+    public String getUsername(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return null;
+        }
+        return claims.get(CLAIM_USERNAME).toString();
+    }
+
+}

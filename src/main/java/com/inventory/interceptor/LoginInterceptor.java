@@ -28,8 +28,10 @@ public class LoginInterceptor implements HandlerInterceptor {
         String uri = request.getRequestURI();
 
         // 白名单放行
-        if (uri.contains("/sysUser/login")
-                || uri.contains("/sysUser/register")
+        if (uri.contains("/auth/login")
+                || uri.contains("/auth/register")
+                || uri.contains("/auth/logout")
+                || uri.contains("/auth/current")
                 || uri.contains("/doc.html")
                 || uri.contains("/swagger")
                 || uri.contains("/v3/api-docs")

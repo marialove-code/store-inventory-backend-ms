@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 @Aspect
 @Component
+@Order(1)
 public class RateLimitAspect {
 
     private final RedisTemplate<String, Object> redisTemplate;
