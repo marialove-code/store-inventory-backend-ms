@@ -2,6 +2,7 @@ package com.inventory.service;
 
 import com.inventory.entity.SysPermission;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.inventory.entity.menu.MenuVO;
 
 import java.util.List;
 
@@ -13,8 +14,21 @@ import java.util.List;
 public interface SysPermissionService extends IService<SysPermission> {
 
     /**
-     * 根据用户ID查询权限标识列表
+     * 根据用户ID查询【权限标识perm_code】列表
+     * 用于 Spring Security 权限校验，如：system:user:list
+     *
+     * @param userId 用户ID
+     * @return 权限标识字符串集合
      */
     List<String> listPermCodesByUserId(Long userId);
+
+    /**
+     * 构建【前端树形菜单】
+     * 把平铺的权限列表数据，根据 parent_id 递归组装成树形结构
+     *
+     * @param permissions 权限/菜单列表
+     * @return 树形结构菜单数据
+     */
+    List<MenuVO> buildMenuTree(List<SysPermission> permissions);
 
 }

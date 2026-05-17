@@ -13,4 +13,19 @@
     <sql id="Base_Column_List">
         id,role_id,perm_id
     </sql>
+
+
+
+    <!-- 根据用户ID查询权限标识列表 -->
+    <select id="listUserPermissionsByUserId" resultType="java.lang.String">
+        SELECT DISTINCT p.perms
+        FROM sys_permission p
+                 LEFT JOIN sys_role_permission rp ON p.id = rp.perm_id
+                 LEFT JOIN sys_user_role ur ON rp.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND p.perms IS NOT NULL
+          AND p.perms != ''
+      AND p.status = 1
+      AND p.is_deleted = 0
+    </select>
 </mapper>

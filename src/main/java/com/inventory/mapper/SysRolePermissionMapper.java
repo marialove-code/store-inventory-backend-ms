@@ -1,7 +1,11 @@
 package com.inventory.mapper;
 
+import com.inventory.entity.SysPermission;
 import com.inventory.entity.SysRolePermission;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
 * @author 95349
@@ -10,6 +14,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.inventory.entity.SysRolePermission
 */
 public interface SysRolePermissionMapper extends BaseMapper<SysRolePermission> {
+
+    List<SysPermission> listUserPermissionsByUserId(@Param("userId") Long userId);
+
 
 }
 

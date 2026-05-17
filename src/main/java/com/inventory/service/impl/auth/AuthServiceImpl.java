@@ -8,6 +8,7 @@ import com.inventory.common.exception.BusinessException;
 import com.inventory.common.result.ResultCode;
 import com.inventory.common.utils.JwtUtil;
 import com.inventory.constant.RedisConstants;
+import com.inventory.context.LoginUserContext;
 import com.inventory.entity.*;
 import com.inventory.entity.login.LoginTokenVO;
 import com.inventory.entity.login.LoginUserVO;
@@ -19,6 +20,7 @@ import com.inventory.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -128,18 +130,32 @@ public class AuthServiceImpl implements AuthService {
         loginUser.setAdmin(roles.contains("SUPER_ADMIN"));
 
         // ====================== 6. Redis 存储 AccessToken 登录态（✅ 关键修复） ======================
-        // 这里的 key 必须和 JwtAuthenticationFilter 里完全一样！！！
-        String redisKey = RedisConstants.LOGIN_TOKEN_KEY + accessToken;
+        /**
+         * Redis Key
+         */
+        String redisKey =
+                RedisConstants.LOGIN_TOKEN_KEY + accessToken;
 
-        // 存储格式：key=login:token:xxx  value=userId（过滤器只需要判断是否存在，存 userId 即可）
+/**
+ * 存储完整登录用户信息
+ *
+ * 后续JWT过滤器会直接从Redis获取：
+ * - userId
+ * - username
+ * - roles
+ * - permissions
+ *
+ * 避免每次请求查数据库
+ */
         redisTemplate.opsForValue().set(
                 redisKey,
-                user.getId(),  // ✅ 改成存 userId，过滤器就能识别了
+                loginUser,   // ✅ 改成存 LoginUserVO
                 accessExpire,
                 TimeUnit.MINUTES
         );
 
-        // ====================== 7. Redis 存储 RefreshToken ======================
+// ====================== 7. Redis 存储 RefreshToken ======================
+
         redisTemplate.opsForValue().set(
                 RedisConstants.LOGIN_REFRESH_KEY + refreshToken,
                 user.getId(),
@@ -159,6 +175,8 @@ public class AuthServiceImpl implements AuthService {
         vo.setAccessToken(accessToken);
         vo.setRefreshToken(refreshToken);
         vo.setUser(userVO);
+        // 转换并存入ThreadLocal（这里是关键修改点）
+
 
         return vo;
     }
@@ -263,35 +281,91 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // ========================== 【新增】获取当前登录用户 ==========================
+
+    /**
+     * 获取当前登录用户信息
+     * <p>
+     * 说明：
+     * 1. 前端进入系统后会调用该接口
+     * 2. JWT过滤器已经完成认证
+     * 3. 当前用户信息会存入 SpringSecurity 上下文
+     */
     @Override
     public SysUserSimpleVO currentUser() {
-        // 从 SpringSecurity 上下文获取已认证用户
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // 未登录
-        if (!(principal instanceof UserDetails)) {
+        /**
+         * 1. 获取认证对象
+         */
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        /**
+         * 2. 未登录判断
+         *
+         * 以下情况都视为未登录：
+         * - authentication为空
+         * - principal为空
+         * - principal不是UserDetails类型
+         */
+        if (authentication == null
+                || authentication.getPrincipal() == null
+                || !(authentication.getPrincipal() instanceof UserDetails)) {
+
             throw new BusinessException(ResultCode.NOT_LOGIN);
         }
 
-        // 获取用户名
-        String username = ((UserDetails) principal).getUsername();
+        /**
+         * 3. 获取当前登录用户名
+         *
+         * JWT过滤器中：
+         * new User(username, "", authorities)
+         *
+         * 所以这里可以直接获取用户名
+         */
+        UserDetails userDetails =
+                (UserDetails) authentication.getPrincipal();
 
-        // 查询用户
-        LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
+        String username = userDetails.getUsername();
+
+        /**
+         * 4. 查询数据库用户信息
+         */
+        LambdaQueryWrapper<SysUser> wrapper =
+                Wrappers.lambdaQuery();
+
         wrapper.eq(SysUser::getUserName, username);
+
+        // 逻辑删除判断
         wrapper.eq(SysUser::getIsDeleted, 0);
 
         SysUser user = sysUserService.getOne(wrapper);
+
+        /**
+         * 5. 用户不存在
+         */
         if (user == null) {
+
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
 
-        // 封装VO
-        SysUserSimpleVO vo = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
+        /**
+         * 6. 转换VO
+         */
+        SysUserSimpleVO vo =
+                BeanUtil.copyProperties(user, SysUserSimpleVO.class);
+
+        /**
+         * 7. 昵称为空时
+         * 默认显示用户名
+         */
         if (StrUtil.isBlank(vo.getNickName())) {
+
             vo.setNickName(user.getUserName());
         }
 
+        /**
+         * 8. 返回当前登录用户信息
+         */
         return vo;
     }
 }
