@@ -60,8 +60,9 @@ public class AuthController {
     /**
      * 刷新Token
      */
+
     @PostMapping("/refreshToken")
-    public Result<LoginTokenVO> refreshToken(@RequestParam String refreshToken) {
+    public Result<LoginTokenVO> refreshToken(@RequestHeader String refreshToken) {
         return Result.success(authService.refreshToken(refreshToken));
     }
 

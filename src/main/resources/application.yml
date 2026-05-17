@@ -39,7 +39,7 @@ jwt:
   # 1. JWT 签名密钥（核心！用于加密签名，防止Token被篡改，必须32位以上复杂字符串）
   secret: 8fA#2kLmPq9XvR7nTz5@Bc1YhU6WsQ0D
   # 2. 访问令牌过期时间（单位：分钟）→ 用于正常接口鉴权，有效期短更安全
-  access-expire: 120
+  access-expire: 1
   # 3. 刷新令牌过期时间（单位：分钟）→ 用于AccessToken过期后无感刷新，10080 = 7天
   refresh-expire: 10080
   # 4. 前端传递Token时使用的请求头Key（标准名称：Authorization）

@@ -1,5 +1,7 @@
 package com.inventory.common.utils;
 
+import com.inventory.common.exception.BusinessException;
+import com.inventory.common.result.ResultCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -100,6 +102,60 @@ public class JwtUtil {
     }
 
     /**
+     * ============================================
+     * 【新增】判断Token是否过期
+     * ============================================
+     *
+     * 用途：Filter中先判断过期，再决定是否返回1102错误码
+     *
+     * @param token JWT令牌
+     * @return true=已过期 false=未过期
+     */
+    public boolean isTokenExpired(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSecretKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Date expiration = claims.getExpiration();
+            return expiration != null && expiration.before(new Date());
+
+        } catch (ExpiredJwtException e) {
+            // 明确过期
+            return true;
+        } catch (Exception e) {
+            // 其他异常（签名错误、格式错误等）也视为过期
+            log.warn("Token解析失败，视为过期: {}", e.getMessage());
+            return true;
+        }
+    }
+
+    /**
+     * ============================================
+     * 【新增】验证Token签名是否有效（不抛异常）
+     * ============================================
+     *
+     * 用途：Filter中验证token是否被篡改
+     *
+     * @param token JWT令牌
+     * @return true=有效 false=无效
+     */
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(getSecretKey())
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            log.warn("Token验证失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 解析JWT令牌，获取载荷Claims
      * 捕获各类异常并打印日志
      * @param token JWT令牌
@@ -114,32 +170,41 @@ public class JwtUtil {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (ExpiredJwtException e) {
-            log.error("Token已过期");
+            // 1102 → 前端无感刷新 核心触发码
+            log.error("Token已过期：{}", e.getMessage());
+            throw new BusinessException(ResultCode.TOKEN_EXPIRED);
         } catch (UnsupportedJwtException e) {
             log.error("Token格式不支持");
+            throw new BusinessException(ResultCode.TOKEN_INVALID); // 1101
         } catch (MalformedJwtException e) {
             log.error("Token非法篡改或格式错误");
+            throw new BusinessException(ResultCode.TOKEN_INVALID); // 1101
         } catch (SignatureException e) {
-            log.error("Token签名校验失败，秘钥不匹配或被篡改");
+            log.error("Token签名校验失败");
+            throw new BusinessException(ResultCode.TOKEN_INVALID); // 1101
         } catch (IllegalArgumentException e) {
             log.error("Token为空字符串");
+            throw new BusinessException(ResultCode.TOKEN_EMPTY); // 1103
+        } catch (Exception e) {
+            log.error("Token解析异常：{}", e.getMessage());
+            throw new BusinessException(ResultCode.TOKEN_PARSE_ERROR); // 1104
         }
-        return null;
     }
 
     /**
      * 校验是否为合法的AccessToken
      * @param token 令牌
      * @return 合法true 非法false
+     * old
      */
-    public boolean validateAccessToken(String token) {
+   /* public boolean validateAccessToken(String token) {
         Claims claims = parseToken(token);
         if (claims == null) {
             return false;
         }
         // 校验令牌类型必须是access
         return ACCESS_TOKEN.equals(claims.get(CLAIM_TOKEN_TYPE));
-    }
+    }*/
 
     /**
      * 校验是否为合法的RefreshToken
@@ -163,7 +228,7 @@ public class JwtUtil {
     public Long getUserId(String token) {
         Claims claims = parseToken(token);
         if (claims == null) {
-            return null;
+            throw new BusinessException(ResultCode.TOKEN_INVALID);
         }
         return Long.valueOf(claims.get(CLAIM_USER_ID).toString());
     }
@@ -176,7 +241,7 @@ public class JwtUtil {
     public String getUsername(String token) {
         Claims claims = parseToken(token);
         if (claims == null) {
-            return null;
+            throw new BusinessException(ResultCode.TOKEN_INVALID);
         }
         return claims.get(CLAIM_USERNAME).toString();
     }

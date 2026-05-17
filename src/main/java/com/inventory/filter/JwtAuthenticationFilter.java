@@ -55,15 +55,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * 请求头key
      */
-    @Value("${jwt.header}")
+    @Value("${jwt.header:Authorization}")
     private String header;
 
     /**
      * Token前缀
      * 例如：Bearer
      */
-    @Value("${jwt.token-prefix}")
+    @Value("${jwt.token-prefix:Bearer }")
     private String tokenPrefix;
+
+    /**
+     * Token过期错误码（与前端约定）
+     */
+    private static final int TOKEN_EXPIRED_CODE = 1102;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -72,20 +77,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
-
             /**
              * 1. 获取请求头中的Token
              */
             String token = request.getHeader(header);
 
             /**
-             * 2. Token不存在，直接放行
+             * 2. Token不存在或格式不对，直接放行
              *
              * 后续由SpringSecurity决定是否拦截
              */
-            if (StrUtil.isBlank(token)
-                    || !token.startsWith(tokenPrefix)) {
-
+            if (StrUtil.isBlank(token) || !token.startsWith(tokenPrefix)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -96,16 +98,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = token.substring(tokenPrefix.length()).trim();
 
             /**
-             * 4. 校验AccessToken是否合法
+             * 4. 校验Token是否过期
+             *
+             * 【优化】如果过期，返回1102错误码，前端自动刷新
              */
-            if (!jwtUtil.validateAccessToken(token)) {
-
-                filterChain.doFilter(request, response);
+            if (jwtUtil.isTokenExpired(token)) {
+                writeErrorResponse(response, TOKEN_EXPIRED_CODE, "Token已过期");
                 return;
             }
 
             /**
-             * 5. Redis登录态校验
+             * 5. 校验Token签名是否有效
+             */
+            if (!jwtUtil.validateToken(token)) {
+                writeErrorResponse(response, TOKEN_EXPIRED_CODE, "Token无效");
+                return;
+            }
+
+            /**
+             * 6. Redis登录态校验
              *
              * 防止：
              * - 退出登录后JWT仍然有效
@@ -113,36 +124,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
              * - 用户被禁用
              */
             String redisKey = RedisConstants.LOGIN_TOKEN_KEY + token;
-
             Object loginUserObj = redisTemplate.opsForValue().get(redisKey);
 
             if (loginUserObj == null) {
-
                 log.warn("登录态已失效: {}", token);
-
-                filterChain.doFilter(request, response);
+                writeErrorResponse(response, TOKEN_EXPIRED_CODE, "登录态已失效");
                 return;
             }
 
             /**
-             * 6. 防止重复认证
+             * 7. 防止重复认证
              */
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 /**
-                 * 7. 从JWT解析用户信息
+                 * 8. 从JWT解析用户信息
                  */
                 Long userId = jwtUtil.getUserId(token);
-
                 String username = jwtUtil.getUsername(token);
 
                 /**
-                 * 8. 从Redis获取真实登录用户
+                 * 9. 从Redis获取真实登录用户
                  */
                 LoginUserVO loginUser = (LoginUserVO) loginUserObj;
 
                 /**
-                 * 9. 存入ThreadLocal
+                 * 10. 存入ThreadLocal
                  *
                  * 后续业务代码可直接获取：
                  * LoginUserContext.getUserId()
@@ -150,24 +157,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 LoginUserContext.setUser(loginUser);
 
                 /**
-                 * 10. 权限列表
-                 *
-                 * 后续可从Redis中读取真实权限
+                 * 11. 权限列表
                  */
-                List<SimpleGrantedAuthority> authorities =
-                        Collections.emptyList();
+                List<SimpleGrantedAuthority> authorities = Collections.emptyList();
 
                 /**
-                 * 11. SpringSecurity用户对象
+                 * 12. SpringSecurity用户对象
                  */
-                User user = new User(
-                        username,
-                        "",
-                        authorities
-                );
+                User user = new User(username, "", authorities);
 
                 /**
-                 * 12. 构建认证对象
+                 * 13. 构建认证对象
                  */
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -177,44 +177,57 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         );
 
                 /**
-                 * 13. 设置请求详情
+                 * 14. 设置请求详情
                  */
                 authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
+                        new WebAuthenticationDetailsSource().buildDetails(request)
                 );
 
                 /**
-                 * 14. 存入SpringSecurity上下文
+                 * 15. 存入SpringSecurity上下文
                  */
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 
             /**
-             * 15. 放行请求
+             * 16. 放行请求
              */
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-
+            /**
+             * 【优化】捕获异常，返回统一错误格式
+             * 原因：Filter抛的异常@ControllerAdvice捕获不到
+             */
             log.error("JWT认证失败: {}", e.getMessage(), e);
-
-            filterChain.doFilter(request, response);
+            writeErrorResponse(response, TOKEN_EXPIRED_CODE, "认证失败: " + e.getMessage());
 
         } finally {
-
             /**
              * 必须清理ThreadLocal
              *
              * 防止线程复用导致用户数据串号
              */
             LoginUserContext.clear();
-
-            /**
-             * 清理Security上下文
-             */
-            SecurityContextHolder.clearContext();
         }
+    }
+
+    /**
+     * ============================================
+     * 写入错误响应
+     * ============================================
+     *
+     * 【关键】Filter中必须手动写响应，因为@ControllerAdvice捕获不到Filter的异常
+     *
+     * @param response HTTP响应
+     * @param code     错误码（1102表示Token过期，前端自动刷新）
+     * @param msg      错误信息
+     */
+    private void writeErrorResponse(HttpServletResponse response, int code, String msg) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+
+        String json = String.format("{\"code\":%d,\"msg\":\"%s\"}", code, msg);
+        response.getWriter().write(json);
     }
 }

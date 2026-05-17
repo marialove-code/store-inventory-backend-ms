@@ -184,21 +184,32 @@ public class AuthServiceImpl implements AuthService {
     // ========================== 登出（你原有代码） ==========================
     @Override
     public void logout(String token, String refreshToken) {
-        // ====================== 1. accessToken 判空 ======================
+
+        // ====================== accessToken ======================
         if (StrUtil.isNotBlank(token)) {
-            // 去掉 Bearer 前缀
-            token = token.replace("Bearer ", "").trim();
-            // 删除 accessToken 登录态
-            redisTemplate.delete(RedisConstants.LOGIN_TOKEN_KEY + token);
+
+            token = token.trim();
+
+            if (token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+
+            redisTemplate.delete(
+                    RedisConstants.LOGIN_TOKEN_KEY + token
+            );
         }
 
-        // ====================== 2. refreshToken 判空 ======================
+        // ====================== refreshToken ======================
         if (StrUtil.isNotBlank(refreshToken)) {
-            // 删除 refreshToken 登录态
-            redisTemplate.delete(RedisConstants.LOGIN_REFRESH_KEY + refreshToken);
+
+            refreshToken = refreshToken.trim();
+
+            redisTemplate.delete(
+                    RedisConstants.LOGIN_REFRESH_KEY + refreshToken
+            );
         }
 
-        // ====================== 3. 清空SpringSecurity上下文 ======================
+        // ====================== 清空认证上下文 ======================
         SecurityContextHolder.clearContext();
     }
 
