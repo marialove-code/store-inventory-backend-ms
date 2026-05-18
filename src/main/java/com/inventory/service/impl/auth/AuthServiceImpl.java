@@ -136,17 +136,17 @@ public class AuthServiceImpl implements AuthService {
         String redisKey =
                 RedisConstants.LOGIN_TOKEN_KEY + accessToken;
 
-/**
- * 存储完整登录用户信息
- *
- * 后续JWT过滤器会直接从Redis获取：
- * - userId
- * - username
- * - roles
- * - permissions
- *
- * 避免每次请求查数据库
- */
+        /**
+         * 存储完整登录用户信息
+         *
+         * 后续JWT过滤器会直接从Redis获取：
+         * - userId
+         * - username
+         * - roles
+         * - permissions
+         *
+         * 避免每次请求查数据库
+         */
         redisTemplate.opsForValue().set(
                 redisKey,
                 loginUser,   // ✅ 改成存 LoginUserVO

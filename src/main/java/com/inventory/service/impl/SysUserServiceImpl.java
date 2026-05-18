@@ -1,6 +1,7 @@
 package com.inventory.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -10,15 +11,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.inventory.common.exception.BusinessException;
 import com.inventory.common.result.ResultCode;
 import com.inventory.common.utils.DesensitizeUtil;
+import com.inventory.constant.RedisConstants;
 import com.inventory.entity.SysUser;
 import com.inventory.entity.SysUserListVO;
+import com.inventory.entity.login.LoginUserVO;
 import com.inventory.mapper.SysUserMapper;
 import com.inventory.service.SysUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +36,9 @@ import java.util.stream.Collectors;
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements SysUserService {
 
     private final PasswordEncoder passwordEncoder;
+
+    private final RedisTemplate<String, Object> redisTemplate;
+
 
     @Override
     public Page<SysUserListVO> pageUser(String keyword, Integer status, Long pageNum, Long pageSize) {
@@ -125,8 +133,45 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
+
         user.setStatus(status);
         this.updateById(user);
+
+        // ==============================================
+        // ✅ 【关键：禁用用户 → 删 Redis token，强制下线】
+        // ==============================================
+        if (status == 0) {
+            kickUserOffline(id);
+        }
+    }
+
+    /**
+     * 踢用户下线：删除 Redis 中所有 accessToken + refreshToken
+     */
+    private void kickUserOffline(Long userId) {
+        // 1. 删除所有 accessToken
+        String accessPattern = RedisConstants.LOGIN_TOKEN_KEY + "*";
+        Set<String> accessKeys = redisTemplate.keys(accessPattern);
+        if (CollUtil.isNotEmpty(accessKeys)) {
+            for (String key : accessKeys) {
+                LoginUserVO loginUser = (LoginUserVO) redisTemplate.opsForValue().get(key);
+                if (loginUser != null && userId.equals(loginUser.getUserId())) {
+                    redisTemplate.delete(key);
+                }
+            }
+        }
+
+        // 2. 删除所有 refreshToken
+        String refreshPattern = RedisConstants.LOGIN_REFRESH_KEY + "*";
+        Set<String> refreshKeys = redisTemplate.keys(refreshPattern);
+        if (CollUtil.isNotEmpty(refreshKeys)) {
+            for (String key : refreshKeys) {
+                Long redisUserId = (Long) redisTemplate.opsForValue().get(key);
+                if (userId.equals(redisUserId)) {
+                    redisTemplate.delete(key);
+                }
+            }
+        }
     }
 
     @Override

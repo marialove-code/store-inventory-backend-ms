@@ -36,6 +36,7 @@ import java.util.List;
  * 3. 校验Redis登录态
  * 4. 设置SpringSecurity认证信息
  * 5. 设置当前登录用户上下文
+ * 6. 新增：JWT临近过期自动续期
  */
 @Slf4j
 @Component
@@ -69,6 +70,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * Token过期错误码（与前端约定）
      */
     private static final int TOKEN_EXPIRED_CODE = 1102;
+
+    // ===================== 新增续期配置 =====================
+    /**
+     * 触发自动续期阈值：剩余过期时间小于该秒数 自动续期
+     * 例如：30分钟令牌，剩余5分钟就自动续期
+     */
+    private static final long RENEW_THRESHOLD_SECOND = 300;
+    /**
+     * 响应头存放新令牌key，前端从这里拿新token替换本地旧token
+     */
+    private static final String NEW_TOKEN_HEADER = "new-access-token";
+    // ======================================================
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -114,6 +127,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 writeErrorResponse(response, TOKEN_EXPIRED_CODE, "Token无效");
                 return;
             }
+
+            // ===================== 新增自动续期逻辑开始 =====================
+            // 获取当前token剩余有效时长（秒）
+            long remainExpireSecond = jwtUtil.getRemainExpireTime(token);
+            // 判断是否达到续期条件：剩余时间小于阈值
+            if (remainExpireSecond < RENEW_THRESHOLD_SECOND) {
+                // 解析当前用户信息
+                Long userId = jwtUtil.getUserId(token);
+                String username = jwtUtil.getUsername(token);
+                // 生成全新accessToken
+                String newAccessToken = jwtUtil.createAccessToken(userId, username);
+                // 将新令牌放入响应头返回给前端
+                response.setHeader(NEW_TOKEN_HEADER, tokenPrefix + newAccessToken);
+                log.info("用户{}令牌临近过期，已自动完成续期", username);
+            }
+            // ===================== 新增自动续期逻辑结束 =====================
+
 
             /**
              * 6. Redis登录态校验

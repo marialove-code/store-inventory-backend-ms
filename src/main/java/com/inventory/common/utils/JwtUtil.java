@@ -132,6 +132,47 @@ public class JwtUtil {
         }
     }
 
+
+    /**
+     * 获取Token剩余有效时间（单位：秒）
+     * 用于自动续期判断：剩余时间 < 阈值 → 自动续期
+     */
+    public long getRemainExpireTime(String token) {
+        try {
+            // 解析token（不校验过期，只拿过期时间）
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSecretKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Date expireDate = claims.getExpiration();
+            if (expireDate == null) {
+                return 0;
+            }
+
+            // 当前时间毫秒 - 过期时间毫秒 → 剩余毫秒
+            long now = System.currentTimeMillis();
+            long expireMills = expireDate.getTime();
+            long remainMills = expireMills - now;
+
+            // 小于0 说明已过期
+            if (remainMills <= 0) {
+                return 0;
+            }
+
+            // 转成秒返回
+            return remainMills / 1000;
+
+        } catch (ExpiredJwtException e) {
+            // 已经过期 → 剩余0秒
+            return 0;
+        } catch (Exception e) {
+            // 解析失败 → 视为0
+            return 0;
+        }
+    }
+
     /**
      * ============================================
      * 【新增】验证Token签名是否有效（不抛异常）
