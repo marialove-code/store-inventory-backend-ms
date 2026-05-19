@@ -113,9 +113,23 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
 
+
+
+
         // ====================== 3. 查询用户角色 + 权限 ======================
         List<String> roles = sysRoleService.listRoleCodesByUserId(user.getId());
-        List<String> permissions = sysPermissionService.listPermCodesByUserId(user.getId());
+
+        // 2. 判断是否是超级管理员（只要包含 SUPER_ADMIN 角色）
+        boolean isSuperAdmin = roles.contains("SUPER_ADMIN");
+
+        List<String> permissions;
+        if (isSuperAdmin) {
+            // 超级管理员：所有权限
+            permissions = sysPermissionService.listAllPermCodes();
+        } else {
+            // 普通用户：按角色查权限
+            permissions = sysPermissionService.listPermCodesByUserId(user.getId());
+        }
 
         // ====================== 4. 生成 JWT 双 Token ======================
         String accessToken = jwtUtil.createAccessToken(user.getId(), user.getUserName());

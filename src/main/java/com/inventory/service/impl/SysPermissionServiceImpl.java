@@ -1,6 +1,7 @@
 package com.inventory.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.inventory.entity.SysPermission;
 import com.inventory.entity.menu.MenuVO;
@@ -9,7 +10,9 @@ import com.inventory.mapper.SysPermissionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -59,7 +62,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         // 2. 找出顶级菜单（parentId = 0）
         List<MenuVO> rootMenus = menuList.stream()
-                .filter(menu -> menu.getParentId() == 5)
+                .filter(menu -> menu.getParentId() == 1924700000000000000L )
                 .sorted((a, b) -> a.getSort() - b.getSort())
                 .collect(Collectors.toList());
 
@@ -79,6 +82,51 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
                 .orderByAsc(SysPermission::getSort);
         List<SysPermission> sysPermissions = baseMapper.selectList(queryWrapper);
         return sysPermissions;
+    }
+
+    @Override
+    public List<String> listAllPermCodes() {
+        LambdaQueryWrapper<SysPermission> wrapper = Wrappers.lambdaQuery();
+
+        // 只查询 perm_code 字段
+        wrapper.select(SysPermission::getPermCode);
+
+        // 只查询正常状态
+        wrapper.eq(SysPermission::getStatus, 1);
+
+        // 查询数据
+        List<SysPermission> permissionList = baseMapper.selectList(wrapper);
+
+        // 返回结果
+        List<String> permCodes = new ArrayList<>();
+
+        // 判空
+        if (permissionList != null && !permissionList.isEmpty()) {
+
+            for (SysPermission permission : permissionList) {
+
+                // 防止 permission 本身为空
+                if (permission == null) {
+                    continue;
+                }
+
+                String permCode = permission.getPermCode();
+
+                // 防止 permCode 为空
+                if (permCode == null) {
+                    continue;
+                }
+
+                // 去除空字符串
+                if ("".equals(permCode.trim())) {
+                    continue;
+                }
+
+                permCodes.add(permCode);
+            }
+        }
+
+        return permCodes;
     }
 
     /**

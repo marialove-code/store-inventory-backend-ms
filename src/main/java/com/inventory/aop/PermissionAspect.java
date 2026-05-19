@@ -2,6 +2,7 @@ package com.inventory.aop;
 
 import com.inventory.annotation.RequiresPerm;
 import com.inventory.context.LoginUserContext;
+import com.inventory.entity.login.LoginUserVO;
 import com.inventory.exception.PermissionException;
 import com.inventory.service.SysPermissionService;
 import jakarta.annotation.Resource;
@@ -42,28 +43,36 @@ public class PermissionAspect {
         // 1. 获取接口需要权限
         String needPerm = requiresPerm.value();
 
-        // 2. 获取当前登录用户ID
-        Long userId = LoginUserContext.getUserId();
-
+        // 2. 获取当前登录用户
+        LoginUserVO loginUser = LoginUserContext.getUser();
+        if (loginUser == null) {
+            throw new PermissionException("用户未登录");
+        }
+        // 3. 获取当前登录用户ID
+        Long userId = loginUser.getUserId();
         if (userId == null) {
             throw new PermissionException("用户未登录");
         }
 
-        // 3. 查询用户权限列表
-        List<String> userPerms =
-                sysPermissionService.listPermCodesByUserId(userId);
 
-        // 4. 超级管理员直接放行
+        // ==============================================
+        // ✅ 【优化】超级管理员（SUPER_ADMIN）直接放行所有接口
+        // ==============================================
+        if (loginUser.getRoles().contains("SUPER_ADMIN")) {
+            return;
+        }
+
+        // 3. 查询用户权限列表
+        List<String> userPerms = sysPermissionService.listPermCodesByUserId(userId);
+
+        // 4. 原来的 *:*:* 也保留（兼容双判断，更安全）
         if (userPerms.contains("*:*:*")) {
             return;
         }
 
         // 5. 判断权限
         if (userPerms == null || !userPerms.contains(needPerm)) {
-
-            log.warn("权限校验失败，userId={}, needPerm={}",
-                    userId, needPerm);
-
+            log.warn("权限校验失败，userId={}, needPerm={}", userId, needPerm);
             throw new PermissionException("无权限访问");
         }
     }

@@ -47,5 +47,9 @@ public interface SysPermissionService extends IService<SysPermission> {
      */
     List<SysPermission> listAllNormalPermissions();
 
-
+    /**
+     * 获取全部权限 （超级管路员）
+     * @return
+     */
+    List<String> listAllPermCodes();
 }
