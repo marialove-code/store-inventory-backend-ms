@@ -21,6 +21,20 @@
         create_time,update_time,is_deleted
     </sql>
 
+
+    <!--
+     * 分页查询角色列表
+     * 对接：selectRolePage(Page, LambdaQueryWrapper)
+     * 返回：SysRoleListVO
+    -->
+    <select id="selectRolePage" resultType="com.inventory.entity.menu.SysRoleListVO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        sys_role
+        ${ew.customSqlSegment}
+    </select>
+
     <!-- ================================ -->
     <!-- 根据用户ID查询角色编码列表 -->
     <!-- ================================ -->

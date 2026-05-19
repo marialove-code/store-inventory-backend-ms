@@ -1,7 +1,12 @@
 package com.inventory.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.inventory.entity.SysRole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.inventory.entity.menu.SysRoleListVO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -13,6 +18,12 @@ import java.util.List;
 * @Entity com.inventory.entity.SysRole
 */
 public interface SysRoleMapper extends BaseMapper<SysRole> {
+
+
+    /**
+     * 角色分页自定义查询
+     */
+    Page<SysRoleListVO> selectRolePage(IPage<SysRoleListVO> page, @Param(Constants.WRAPPER) LambdaQueryWrapper<SysRole> queryWrapper);
 
 
     /**

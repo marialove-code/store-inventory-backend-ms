@@ -5,6 +5,8 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -14,13 +16,17 @@ import com.inventory.common.utils.DesensitizeUtil;
 import com.inventory.constant.RedisConstants;
 import com.inventory.entity.SysUser;
 import com.inventory.entity.SysUserListVO;
+import com.inventory.entity.SysUserRole;
 import com.inventory.entity.login.LoginUserVO;
 import com.inventory.mapper.SysUserMapper;
+import com.inventory.mapper.SysUserRoleMapper;
 import com.inventory.service.SysUserService;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -38,6 +44,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final PasswordEncoder passwordEncoder;
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    private final SysUserRoleMapper sysUserRoleMapper;
 
 
     @Override
@@ -217,5 +225,46 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     public SysUser getOne(LambdaQueryWrapper<SysUser> wrapper) {
         return baseMapper.selectOne(wrapper);
+    }
+
+
+    @Override
+    public List<Long> getUserRoleIds(Long userId) {
+        // 构建查询条件：查询该用户的所有角色关联记录
+        LambdaQueryWrapper<SysUserRole> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUserRole::getUserId, userId);
+        // 只查询role_id字段，避免查询多余字段
+        queryWrapper.select(SysUserRole::getRoleId);
+
+        // 查询并转换为角色ID列表
+        return sysUserRoleMapper.selectList(queryWrapper)
+                .stream()
+                .map(SysUserRole::getRoleId)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 开启事务，确保删除和插入要么都成功要么都失败
+    public void saveUserRole(Long userId, List<Long> roleIds) {
+        // 第一步：删除该用户所有旧的角色关联
+        LambdaQueryWrapper<SysUserRole> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(SysUserRole::getUserId, userId);
+        sysUserRoleMapper.delete(deleteWrapper);
+
+        // 第二步：批量插入新的角色关联
+        if (!CollectionUtils.isEmpty(roleIds)) {
+            List<SysUserRole> userRoleList = roleIds.stream()
+                    .map(roleId -> {
+                        SysUserRole userRole = new SysUserRole();
+                        // 关键：手动生成雪花ID
+                        userRole.setId(IdWorker.getId());
+                        userRole.setUserId(userId);
+                        userRole.setRoleId(roleId);
+                        return userRole;
+                    })
+                    .collect(Collectors.toList());
+
+            sysUserRoleMapper.batchInsert(userRoleList);
+        }
     }
 }

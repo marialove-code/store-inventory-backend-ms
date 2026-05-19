@@ -7,6 +7,7 @@ import com.inventory.entity.menu.MenuVO;
 import com.inventory.service.SysPermissionService;
 import com.inventory.service.SysRolePermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,6 +49,25 @@ public class SysMenuController {
         // 3. 构建树形结构（递归组装children）
         List<MenuVO> menuTree = permissionService.buildMenuTree(permissions);
         
+        return Result.success(menuTree);
+    }
+
+
+    /**
+     * 菜单管理列表查询（支持关键词搜索，返回完整树形结构）
+     * 前端调用：GET /api/sysMenu/list?keyword=xxx
+     */
+    @GetMapping("/list")
+    public Result<List<MenuVO>> list(String keyword) {
+        // 1. 构建查询条件：查询所有菜单（C=目录、M=菜单、F=按钮）
+        List<SysPermission> menuList = permissionService.lambdaQuery()
+                .like(StringUtils.hasText(keyword), SysPermission::getPermName, keyword)
+                .orderByAsc(SysPermission::getSort)
+                .list();
+
+        // 2. 构建树形结构（和你现有方法一致）
+        List<MenuVO> menuTree = permissionService.buildMenuTree(menuList);
+
         return Result.success(menuTree);
     }
 }

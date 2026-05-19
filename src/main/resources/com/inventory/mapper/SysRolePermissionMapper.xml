@@ -28,4 +28,19 @@
       AND p.status = 1
       AND p.is_deleted = 0
     </select>
+
+
+    <!--
+    * 批量插入角色权限关联
+    * 对应方法：batchInsert(List<SysRolePermission> list)
+   -->
+    <insert id="batchInsert">
+        INSERT INTO sys_role_permission (id,role_id, perm_id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id},#{item.roleId}, #{item.permId})
+        </foreach>
+    </insert>
+
+
 </mapper>

@@ -18,6 +18,16 @@ public interface SysRolePermissionMapper extends BaseMapper<SysRolePermission> {
     List<SysPermission> listUserPermissionsByUserId(@Param("userId") Long userId);
 
 
+
+    /**
+     * 批量插入角色权限关联关系
+     * @param list 角色权限关联实体列表
+     * @return 插入成功的行数
+     */
+    int batchInsert(@Param("list") List<SysRolePermission> list);
+
+
+
 }
 
 

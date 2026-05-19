@@ -1,5 +1,6 @@
 package com.inventory.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.inventory.entity.SysPermission;
 import com.inventory.entity.menu.MenuVO;
@@ -58,7 +59,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         // 2. 找出顶级菜单（parentId = 0）
         List<MenuVO> rootMenus = menuList.stream()
-                .filter(menu -> menu.getParentId() == 0)
+                .filter(menu -> menu.getParentId() == 5)
                 .sorted((a, b) -> a.getSort() - b.getSort())
                 .collect(Collectors.toList());
 
@@ -68,6 +69,16 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         }
 
         return rootMenus;
+    }
+
+
+    @Override
+    public List<SysPermission> listAllNormalPermissions() {
+        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysPermission::getStatus, 1)
+                .orderByAsc(SysPermission::getSort);
+        List<SysPermission> sysPermissions = baseMapper.selectList(queryWrapper);
+        return sysPermissions;
     }
 
     /**
@@ -86,6 +97,55 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         // 递归：子菜单继续找子菜单
         for (MenuVO child : children) {
             findChildren(child, menuList);
+        }
+    }
+
+
+
+    // ====================== 【权限树专用：构建整棵树（包含所有权限根节点）】 ======================
+    @Override
+    public List<MenuVO> buildAllMenuTree(List<SysPermission> permissions) {
+        // 1. 转 MenuVO
+        List<MenuVO> menuList = permissions.stream()
+                .map(p -> {
+                    MenuVO vo = new MenuVO();
+                    vo.setId(p.getId());
+                    vo.setParentId(p.getParentId());
+                    vo.setPermName(p.getPermName());
+                    vo.setPath(p.getPath());
+                    vo.setComponent(p.getComponent());
+                    vo.setIcon(p.getIcon());
+                    vo.setPermType(p.getPermType());
+                    vo.setPermCode(p.getPermCode());
+                    vo.setSort(p.getSort());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        // 2. 找根节点：parentId = -1 → 【所有权限】
+        List<MenuVO> rootMenus = menuList.stream()
+                .filter(menu -> menu.getParentId() == -1)
+                .sorted((a, b) -> a.getSort() - b.getSort())
+                .collect(Collectors.toList());
+
+        // 3. 递归设置子节点
+        for (MenuVO root : rootMenus) {
+            findChildrenRecursive(root, menuList);
+        }
+
+        return rootMenus;
+    }
+
+    // 递归工具方法（加在同一个ServiceImpl里）
+    private void findChildrenRecursive(MenuVO parent, List<MenuVO> allMenus) {
+        List<MenuVO> children = allMenus.stream()
+                .filter(menu -> parent.getId().equals(menu.getParentId()))
+                .sorted((a, b) -> a.getSort() - b.getSort())
+                .collect(Collectors.toList());
+
+        parent.setChildren(children);
+        for (MenuVO child : children) {
+            findChildrenRecursive(child, allMenus);
         }
     }
 

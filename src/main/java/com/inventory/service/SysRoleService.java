@@ -1,7 +1,11 @@
 package com.inventory.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.inventory.entity.SysRole;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.inventory.entity.menu.MenuVO;
+import com.inventory.entity.menu.SysRoleListVO;
 
 import java.util.List;
 
@@ -12,6 +16,37 @@ import java.util.List;
 */
 public interface SysRoleService extends IService<SysRole> {
 
+
+
+    /**
+     * 分页查询角色数据
+     * @param keyword 搜索关键词
+     * @param status 状态
+     * @param pageNum 页码
+     * @param pageSize 页大小
+     * @return 分页数据
+     */
+    Page<SysRoleListVO> pageRole(String keyword, Integer status, Long pageNum, Long pageSize);
+
+
+
+
+
+    /**
+     * 获取系统所有权限的树形结构（用于角色分配权限）
+     * 包含：目录M、菜单C、按钮F
+     */
+    List<MenuVO> getAllPermissionTree();
+
+    /**
+     * 查询角色已拥有的权限ID列表
+     */
+    List<Long> getRolePermissionIds(Long roleId);
+
+    /**
+     * 保存角色与权限的关联关系
+     */
+    void saveRolePermission(Long roleId, List<Long> permIds);
     /**
      * 根据用户ID查询角色编码列表
      * @param userId 用户ID

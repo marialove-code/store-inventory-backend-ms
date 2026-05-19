@@ -82,4 +82,25 @@ public class SysUserController {
         sysUserService.batchDelete(ids);
         return Result.success();
     }
+
+    /**
+     * 查询指定用户已拥有的角色ID列表
+     * 用于分配角色弹窗的回显
+     */
+    @GetMapping("/{userId}/roleIds")
+    public Result<List<Long>> getUserRoleIds(@PathVariable Long userId) {
+        return Result.success(sysUserService.getUserRoleIds(userId));
+    }
+
+    /**
+     * 保存用户的角色分配
+     */
+    @PostMapping("/{userId}/role")
+    public Result<Void> saveUserRole(
+            @PathVariable Long userId,
+            @RequestBody List<Long> roleIds
+    ) {
+        sysUserService.saveUserRole(userId, roleIds);
+        return Result.success();
+    }
 }

@@ -59,4 +59,21 @@ public interface SysUserService extends IService<SysUser>  {
      * 条件查询单个用户（登录、获取当前用户用）
      */
     SysUser getOne(LambdaQueryWrapper<SysUser> wrapper);
+
+
+
+    /**
+     * 查询指定用户已拥有的角色ID列表
+     * @param userId 用户ID
+     * @return 角色ID列表
+     */
+    List<Long> getUserRoleIds(Long userId);
+
+    /**
+     * 保存用户与角色的关联关系
+     * 采用"先删后插"的原子性操作，简单高效
+     * @param userId 用户ID
+     * @param roleIds 要分配的角色ID列表
+     */
+    void saveUserRole(Long userId, List<Long> roleIds);
 }

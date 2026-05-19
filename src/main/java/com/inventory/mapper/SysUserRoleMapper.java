@@ -2,6 +2,9 @@ package com.inventory.mapper;
 
 import com.inventory.entity.SysUserRole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
 * @author 95349
@@ -10,6 +13,14 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.inventory.entity.SysUserRole
 */
 public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
+
+
+    /**
+     * 批量插入用户角色关联关系
+     * @param list 用户角色关联实体列表
+     * @return 插入成功的行数
+     */
+    int batchInsert(@Param("list") List<SysUserRole> list);
 
 }
 

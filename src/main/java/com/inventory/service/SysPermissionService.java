@@ -31,4 +31,21 @@ public interface SysPermissionService extends IService<SysPermission> {
      */
     List<MenuVO> buildMenuTree(List<SysPermission> permissions);
 
+
+    /**
+     * 构建【前端树形菜单】
+     * 把平铺的权限列表数据，根据 parent_id 递归组装成树形结构
+     *
+     * @param permissions 权限/菜单列表
+     * @return 树形结构菜单数据
+     */
+    List<MenuVO> buildAllMenuTree(List<SysPermission> permissions);
+
+    /**
+     * 查询系统所有正常状态的权限
+     * 包含：目录M、菜单C、按钮F
+     */
+    List<SysPermission> listAllNormalPermissions();
+
+
 }
