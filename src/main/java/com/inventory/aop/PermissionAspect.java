@@ -61,15 +61,8 @@ public class PermissionAspect {
         if (loginUser.getRoles().contains("SUPER_ADMIN")) {
             return;
         }
-
         // 3. 查询用户权限列表
         List<String> userPerms = sysPermissionService.listPermCodesByUserId(userId);
-
-        // 4. 原来的 *:*:* 也保留（兼容双判断，更安全）
-        if (userPerms.contains("*:*:*")) {
-            return;
-        }
-
         // 5. 判断权限
         if (userPerms == null || !userPerms.contains(needPerm)) {
             log.warn("权限校验失败，userId={}, needPerm={}", userId, needPerm);
