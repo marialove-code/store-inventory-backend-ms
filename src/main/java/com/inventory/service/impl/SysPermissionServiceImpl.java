@@ -129,6 +129,11 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         return permCodes;
     }
 
+    @Override
+    public List<SysPermission> getMenuPermissionsByUserId(Long userId) {
+        return baseMapper.selectMenuPermissionsByUserId(userId);
+    }
+
     /**
      * 递归查找子节点
      */
@@ -172,7 +177,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         // 2. 找根节点：parentId = -1 → 【所有权限】
         List<MenuVO> rootMenus = menuList.stream()
-                .filter(menu -> menu.getParentId() == -1)
+                .filter(menu -> menu.getParentId() == 0)
                 .sorted((a, b) -> a.getSort() - b.getSort())
                 .collect(Collectors.toList());
 

@@ -12,6 +12,7 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -40,8 +41,11 @@ public class PermissionAspect {
     @Before("permissionPointCut(requiresPerm)")
     public void checkPermission(RequiresPerm requiresPerm) {
 
-        // 1. 获取接口需要权限
+        // 1. 获取接口需要的权限标识
         String needPerm = requiresPerm.value();
+        if (StringUtils.isEmpty(needPerm)) {
+            return; // 接口不需要权限
+        }
 
         // 2. 获取当前登录用户
         LoginUserVO loginUser = LoginUserContext.getUser();
@@ -53,7 +57,6 @@ public class PermissionAspect {
         if (userId == null) {
             throw new PermissionException("用户未登录");
         }
-
 
         // ==============================================
         // ✅ 【优化】超级管理员（SUPER_ADMIN）直接放行所有接口

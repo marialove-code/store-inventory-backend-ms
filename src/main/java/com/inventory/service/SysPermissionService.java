@@ -52,4 +52,11 @@ public interface SysPermissionService extends IService<SysPermission> {
      * @return
      */
     List<String> listAllPermCodes();
+
+    /**
+     * 根据用户ID获取菜单
+     * @param userId
+     * @return
+     */
+    List<SysPermission> getMenuPermissionsByUserId(Long userId);
 }

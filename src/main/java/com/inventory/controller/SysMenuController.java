@@ -3,6 +3,7 @@ package com.inventory.controller;
 import com.inventory.common.result.Result;
 import com.inventory.context.LoginUserContext;
 import com.inventory.entity.SysPermission;
+import com.inventory.entity.login.LoginUserVO;
 import com.inventory.entity.menu.MenuVO;
 import com.inventory.service.SysPermissionService;
 import com.inventory.service.SysRolePermissionService;
@@ -28,10 +29,26 @@ public class SysMenuController {
 
     @GetMapping("/all")
     public List<MenuVO> getAllMenus() {
-        List<SysPermission> list = permissionService.lambdaQuery()
-                .in(SysPermission::getPermType, "M", "C")
-                .list();
-        return permissionService.buildMenuTree(list);
+
+        // 1. 获取当前登录用户
+        LoginUserVO loginUser = LoginUserContext.getUser();
+        List<String> roles = loginUser.getRoles();
+        List<SysPermission> menuList;
+        // 2. 判断是否是超级管理员
+        boolean isSuperAdmin = roles.contains("SUPER_ADMIN");
+        if (isSuperAdmin) {
+            // 超级管理员 → 查询所有菜单和按钮
+            menuList = permissionService.lambdaQuery()
+                    .in(SysPermission::getPermType, "M", "C")
+                    .list();
+        } else {
+            // 普通用户 → 只查询当前用户拥有权限的菜单
+            menuList = permissionService.getMenuPermissionsByUserId(loginUser.getUserId());
+        }
+
+        // 3. 构建树形菜单
+        List<MenuVO> tree = permissionService.buildMenuTree(menuList);
+        return tree;
     }
 
     /**

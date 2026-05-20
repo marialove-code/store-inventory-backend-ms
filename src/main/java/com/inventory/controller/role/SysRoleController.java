@@ -29,6 +29,7 @@ public class SysRoleController {
     /**
      * 查询系统所有正常状态的角色列表
      * 通用接口，所有需要角色列表的地方都可以调用
+     * 【注：开放接口，不加权限，用于用户选择角色】
      */
     @GetMapping("/listAll")
     public Result<List<SysRole>> listAll() {
@@ -58,6 +59,76 @@ public class SysRoleController {
         return Result.success(pageResult);
     }
 
+    // ==================== ↓↓↓ 【新增：根据ID查询单条角色】 ↓↓↓ ====================
+    /**
+     * 根据ID查询单条角色信息
+     * 用于编辑回显
+     */
+    @GetMapping("/{id}")
+    @RequiresPerm("system:role:list")
+    public Result<SysRole> getById(@PathVariable Long id) {
+        return Result.success(sysRoleService.getById(id));
+    }
+
+    /**
+     * 新增角色
+     */
+    @PostMapping
+    @RequiresPerm("system:role:add")
+    public Result<Void> add(@RequestBody SysRole role) {
+        sysRoleService.save(role);
+        return Result.success();
+    }
+
+    /**
+     * 修改角色
+     */
+    @PutMapping("/{id}")
+    @RequiresPerm("system:role:edit")
+    public Result<Void> update(
+            @PathVariable Long id,
+            @RequestBody SysRole role
+    ) {
+        role.setId(id);
+        sysRoleService.updateById(role);
+        return Result.success();
+    }
+
+    /**
+     * 删除角色
+     */
+    @DeleteMapping("/{id}")
+    @RequiresPerm("system:role:delete")
+    public Result<Void> delete(@PathVariable Long id) {
+        sysRoleService.removeById(id);
+        return Result.success();
+    }
+
+    /**
+     * 批量删除角色
+     */
+    @DeleteMapping("/batch")
+    @RequiresPerm("system:role:batchDelete")
+    public Result<Void> batchDelete(@RequestBody List<Long> ids) {
+        sysRoleService.removeByIds(ids);
+        return Result.success();
+    }
+
+    /**
+     * 修改角色状态（启用/禁用）
+     */
+    @PutMapping("/{id}/status")
+    @RequiresPerm("system:role:status")
+    public Result<Void> updateStatus(
+            @PathVariable Long id,
+            @RequestParam Integer status
+    ) {
+        SysRole role = new SysRole();
+        role.setId(id);
+        role.setStatus(status);
+        sysRoleService.updateById(role);
+        return Result.success();
+    }
 
     /**
      * 获取系统所有权限的树形结构
@@ -78,7 +149,8 @@ public class SysRoleController {
     @GetMapping("/{roleId}/permissionIds")
     @RequiresPerm("system:role:assign")
     public Result<List<Long>> getRolePermissionIds(@PathVariable Long roleId) {
-        return Result.success(sysRoleService.getRolePermissionIds(roleId));
+        List<Long> rolePermissionIds = sysRoleService.getRolePermissionIds(roleId);
+        return Result.success(rolePermissionIds);
     }
 
     /**

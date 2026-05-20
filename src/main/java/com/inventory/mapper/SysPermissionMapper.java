@@ -20,6 +20,13 @@ public interface SysPermissionMapper extends BaseMapper<SysPermission> {
      * 根据用户ID查询用户拥有的所有权限标识
      */
     List<String> listPermCodesByUserId(Long userId);
+
+    /**
+     * 根据用户ID获取菜单
+     * @param userId
+     * @return
+     */
+    List<SysPermission> selectMenuPermissionsByUserId(Long userId);
 }
 
 

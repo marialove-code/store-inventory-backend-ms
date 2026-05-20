@@ -43,7 +43,6 @@ public class SysUserController {
     }
 
     @GetMapping("/user/{id}")
-    @RequiresPerm("system:user:list")
     public Result<SysUser> getUserById(@PathVariable Long id) {
         return Result.success(sysUserService.getUserById(id));
     }

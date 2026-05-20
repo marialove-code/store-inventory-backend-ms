@@ -6,11 +6,14 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.inventory.context.LoginUserContext;
 import com.inventory.entity.SysPermission;
 import com.inventory.entity.SysRole;
 import com.inventory.entity.SysRolePermission;
+import com.inventory.entity.login.LoginUserVO;
 import com.inventory.entity.menu.MenuVO;
 import com.inventory.entity.menu.SysRoleListVO;
+import com.inventory.mapper.SysPermissionMapper;
 import com.inventory.mapper.SysRolePermissionMapper;
 import com.inventory.service.SysPermissionService;
 import com.inventory.service.SysRoleService;
@@ -41,6 +44,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
 
     @Resource
     private SysRolePermissionMapper rolePermissionMapper;
+    @Resource
+    private  SysPermissionMapper sysPermissionMapper;
 
     /**
      * 角色分页条件查询
@@ -88,6 +93,19 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
      */
     @Override
     public List<Long> getRolePermissionIds(Long roleId) {
+
+
+        SysRole sysRole = sysRoleMapper.selectById(roleId);
+        // 3. 如果是超级管理员 → 返回所有权限ID
+        if ("SUPER_ADMIN".equals(sysRole.getRoleCode())) {
+            // 超级管理员直接查询全部权限，不限制角色
+            return sysPermissionMapper.selectList(null)
+                    .stream()
+                    .map(SysPermission::getId)
+                    .collect(Collectors.toList());
+        }
+
+        // 4. 普通角色 → 按角色ID查询
         LambdaQueryWrapper<SysRolePermission> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SysRolePermission::getRoleId, roleId);
         return rolePermissionMapper.selectList(queryWrapper)
