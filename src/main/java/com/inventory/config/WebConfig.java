@@ -2,6 +2,7 @@ package com.inventory.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -46,5 +47,13 @@ public class WebConfig implements WebMvcConfigurer {
 
                 // 预检请求缓存时间
                 .maxAge(3600);
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 映射 /upload/avatar/ 路径到本地文件夹
+        // 映射头像目录
+        registry.addResourceHandler("/upload/avatar/**")
+                .addResourceLocations("file:E:/Image/upload/avatar/");
     }
 }

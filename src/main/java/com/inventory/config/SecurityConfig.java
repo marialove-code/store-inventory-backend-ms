@@ -36,16 +36,13 @@ public class SecurityConfig {
      */
     private static final String[] WHITE_LIST = {
 
-            /**
-             * 登录注册
-            */
             "/auth/login",
             "/auth/register",
             "/auth/refreshToken",
 
-            /**
-             * Swagger
-            */
+            // 这里改掉
+            "/upload/avatar/**",
+
             "/doc.html",
             "/swagger-ui/**",
             "/swagger-resources/**",

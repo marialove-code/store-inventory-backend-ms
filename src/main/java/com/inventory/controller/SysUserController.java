@@ -10,8 +10,12 @@ import com.inventory.entity.*;
 import com.inventory.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 用户管理控制器（工程化整改）
@@ -102,5 +106,49 @@ public class SysUserController {
     ) {
         sysUserService.saveUserRole(userId, roleIds);
         return Result.success();
+    }
+
+
+
+    // 头像上传接口（前端直接调用的 /sysUser/uploadAvatar）
+    @PostMapping("/uploadAvatar")
+    public Result<?> uploadAvatar(@RequestParam("avatar") MultipartFile file) {
+        // 1. 判空
+        if (file.isEmpty()) {
+            return Result.fail("上传文件不能为空");
+        }
+
+        // 2. 格式校验
+        String originalFilename = file.getOriginalFilename();
+        String suffix = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        if (!suffix.matches(".(png|jpg|jpeg|gif)")) {
+            return Result.fail("只支持png、jpg、jpeg、gif格式");
+        }
+
+        // 3. 大小校验（2MB = 2 * 1024 * 1024）
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return Result.fail("图片大小不能超过2MB");
+        }
+
+        // 4. 生成唯一文件名，防止覆盖
+        String fileName = UUID.randomUUID().toString().replace("-", "") + suffix;
+
+        try {
+            // 5. 存储目录（你可以改成自己的路径）
+            String uploadPath = "E:/Image/upload/avatar/";
+            File dir = new File(uploadPath);
+            if (!dir.exists()) dir.mkdirs();
+
+            // 6. 保存文件
+            file.transferTo(new File(uploadPath + fileName));
+
+            // 7. 返回可访问的头像URL（关键！前端需要这个）
+            String avatarUrl = "/upload/avatar/" + fileName;
+            return Result.success(avatarUrl);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Result.fail("头像上传失败");
+        }
     }
 }

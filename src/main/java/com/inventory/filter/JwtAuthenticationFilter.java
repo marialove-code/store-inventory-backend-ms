@@ -90,6 +90,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
+            String requestURI = request.getRequestURI();
+            System.out.println("当前请求URI：" + request.getRequestURI());
+            // 这里新增 ↓↓↓↓↓↓↓↓↓
+            if (requestURI.startsWith("/api/upload/avatar/")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             /**
              * 1. 获取请求头中的Token
              */
