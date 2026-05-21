@@ -59,4 +59,11 @@ public interface SysPermissionService extends IService<SysPermission> {
      * @return
      */
     List<SysPermission> getMenuPermissionsByUserId(Long userId);
+
+    /**
+     * 修改菜单状态
+     * @param id 菜单ID
+     * @param status 状态 0-禁用 1-正常
+     */
+    void updateMenuStatus(Long id, Integer status);
 }

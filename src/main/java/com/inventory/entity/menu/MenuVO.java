@@ -57,6 +57,12 @@ public class MenuVO {
      */
     private Integer sort;
 
+
+    /**
+     * 账号状态 1正常 0禁用
+     */
+    private Integer status;
+
     /**
      * 子菜单列表（递归树形结构）
      */

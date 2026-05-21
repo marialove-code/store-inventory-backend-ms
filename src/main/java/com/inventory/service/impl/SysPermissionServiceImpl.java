@@ -55,7 +55,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
                     vo.setIcon(p.getIcon());           // 图标
                     vo.setPermType(p.getPermType());   // M/C/F
                     vo.setPermCode(p.getPermCode());         // 权限标识（你表是 perms 字段）
-                    vo.setSort(p.getSort());           // 排序
+                    vo.setSort(p.getSort());
+                    vo.setStatus(p.getStatus());  // 状态
                     return vo;
                 })
                 .collect(Collectors.toList());
@@ -132,6 +133,16 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     @Override
     public List<SysPermission> getMenuPermissionsByUserId(Long userId) {
         return baseMapper.selectMenuPermissionsByUserId(userId);
+    }
+
+    @Override
+    public void updateMenuStatus(Long id, Integer status) {
+        // 构建更新对象（只更新状态字段，效率更高）
+        SysPermission permission = new SysPermission();
+        permission.setId(id);
+        permission.setStatus(status);
+        // 根据ID更新
+        this.updateById(permission);
     }
 
     /**

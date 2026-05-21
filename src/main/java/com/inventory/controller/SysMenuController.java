@@ -1,5 +1,9 @@
 package com.inventory.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.inventory.annotation.OperationLog;
+import com.inventory.annotation.RequiresPerm;
+import com.inventory.common.enums.OperationTypeEnum;
 import com.inventory.common.result.Result;
 import com.inventory.context.LoginUserContext;
 import com.inventory.entity.SysPermission;
@@ -9,9 +13,7 @@ import com.inventory.service.SysPermissionService;
 import com.inventory.service.SysRolePermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -52,39 +54,83 @@ public class SysMenuController {
     }
 
     /**
-     * 获取当前用户的菜单树（用于前端渲染侧边栏）
+     * 菜单列表查询（只返回目录和菜单，支持关键词搜索，返回树形结构）
      */
-    @GetMapping("/tree")
-    public Result<List<MenuVO>> getCurrentUserMenuTree() {
+    @GetMapping("/list")
+    @RequiresPerm("system:menu:list")
+    public Result<List<MenuVO>> list(@RequestParam(required = false) String keyword) {
+        LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
+        // 只查询 目录(M) 和 菜单(C)，过滤按钮(F)
+        wrapper.in(SysPermission::getPermType, "M", "C");
+        // 模糊查询菜单名称
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(SysPermission::getPermName, keyword);
+        }
+        // 按排序号升序
+        wrapper.orderByAsc(SysPermission::getSort);
 
-        // 1. 获取当前登录用户ID（从SecurityContext里拿）
-        Long userId = LoginUserContext.getUserId();
-        
-        // 2. 根据用户ID查询菜单列表（只查目录M和菜单C，不查按钮F）
-        List<SysPermission> permissions = rolePermissionService.listUserPermissionsByUserId(userId);
-        
-        // 3. 构建树形结构（递归组装children）
-        List<MenuVO> menuTree = permissionService.buildMenuTree(permissions);
-        
+        List<SysPermission> menuList = permissionService.list(wrapper);
+        // 构建树形结构（复用你已有的 buildMenuTree 方法）
+        List<MenuVO> menuTree = permissionService.buildMenuTree(menuList);
         return Result.success(menuTree);
     }
 
+    /**
+     * 新增菜单（只允许新增目录/菜单类型）
+     */
+    @PostMapping
+    @RequiresPerm("system:menu:add")
+    public Result<Void> add(@RequestBody SysPermission menu) {
+        // 强制校验：只允许目录或菜单类型
+        String type = menu.getPermType();
+        if (!"M".equals(type) && !"C".equals(type)) {
+            return Result.fail("菜单类型只能为目录或菜单");
+        }
+        permissionService.save(menu);
+        return Result.success();
+    }
 
     /**
-     * 菜单管理列表查询（支持关键词搜索，返回完整树形结构）
-     * 前端调用：GET /api/sysMenu/list?keyword=xxx
+     * 修改菜单
      */
-    @GetMapping("/list")
-    public Result<List<MenuVO>> list(String keyword) {
-        // 1. 构建查询条件：查询所有菜单（C=目录、M=菜单、F=按钮）
-        List<SysPermission> menuList = permissionService.lambdaQuery()
-                .like(StringUtils.hasText(keyword), SysPermission::getPermName, keyword)
-                .orderByAsc(SysPermission::getSort)
-                .list();
+    @PutMapping("/{id}")
+    @RequiresPerm("system:menu:edit")
+    public Result<Void> update(@PathVariable Long id, @RequestBody SysPermission menu) {
+        // 强制校验：只允许目录或菜单类型
+        String type = menu.getPermType();
+        if (!"M".equals(type) && !"C".equals(type)) {
+            return Result.fail("菜单类型只能为目录或菜单");
+        }
+        menu.setId(id);
+        permissionService.updateById(menu);
+        return Result.success();
+    }
 
-        // 2. 构建树形结构（和你现有方法一致）
-        List<MenuVO> menuTree = permissionService.buildMenuTree(menuList);
+    /**
+     * 删除菜单（级联校验：有子菜单时禁止删除）
+     */
+    @DeleteMapping("/{id}")
+    @RequiresPerm("system:menu:delete")
+    public Result<Void> delete(@PathVariable Long id) {
+        // 校验是否存在子菜单（目录/菜单/按钮）
+        LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysPermission::getParentId, id);
+        Long childCount = permissionService.count(wrapper);
+        if (childCount > 0) {
+            return Result.fail("该菜单下存在子菜单或按钮，无法删除");
+        }
+        permissionService.removeById(id);
+        return Result.success();
+    }
 
-        return Result.success(menuTree);
+    /**
+     * 修改菜单状态
+     */
+    @PutMapping("/{id}/status")
+    @RequiresPerm("system:menu:changeStatus")
+    @OperationLog(title = "修改菜单状态", type = OperationTypeEnum.UPDATE)
+    public Result<Void> updateMenuStatus(@PathVariable Long id, @RequestParam Integer status) {
+        permissionService.updateMenuStatus(id, status);
+        return Result.success();
     }
 }
