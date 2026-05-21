@@ -71,6 +71,6 @@ public class AuthController {
      */
     @GetMapping("/current")
     public Result<SysUserSimpleVO> current() {
-        return Result.success(authService.currentUser());
+        return authService.currentUser();
     }
 }

@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.inventory.common.exception.BusinessException;
+import com.inventory.common.result.Result;
 import com.inventory.common.result.ResultCode;
 import com.inventory.common.utils.JwtUtil;
 import com.inventory.constant.RedisConstants;
@@ -26,8 +27,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static com.inventory.common.constant.PermissionConstants.SUPER_PERM_CODE;
 
 /**
  * 认证服务实现类
@@ -127,8 +131,18 @@ public class AuthServiceImpl implements AuthService {
             // 超级管理员：所有权限
             permissions = sysPermissionService.listAllPermCodes();
         } else {
-            // 普通用户：按角色查权限
-            permissions = sysPermissionService.listPermCodesByUserId(user.getId());
+            // 普通用户：按角色查权限，过滤掉 *:*:* 超级权限
+            List<String> rawPermissions = sysPermissionService.listPermCodesByUserId(user.getId());
+            List<String> userPermissions = new ArrayList<>();
+            if (rawPermissions != null && !rawPermissions.isEmpty()) {
+                for (String code : rawPermissions) {
+                    // 只保留不是 *:*:* 的权限码
+                    if (!SUPER_PERM_CODE.equals(code)) {
+                        userPermissions.add(code);
+                    }
+                }
+            }
+            permissions = userPermissions;
         }
 
         // ====================== 4. 生成 JWT 双 Token ======================
@@ -316,81 +330,33 @@ public class AuthServiceImpl implements AuthService {
      * 3. 当前用户信息会存入 SpringSecurity 上下文
      */
     @Override
-    public SysUserSimpleVO currentUser() {
+    public Result<SysUserSimpleVO> currentUser() {
 
-        /**
-         * 1. 获取认证对象
-         */
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+        // ====================== 1. 从 LoginUserContext 获取登录信息 ======================
+        LoginUserVO loginUser = LoginUserContext.getUser();
+        if (loginUser == null) {
+            // 理论上不会发生，因为 JWT 过滤器已经鉴权
+            return Result.fail(ResultCode.NOT_LOGIN);}
 
-        /**
-         * 2. 未登录判断
-         *
-         * 以下情况都视为未登录：
-         * - authentication为空
-         * - principal为空
-         * - principal不是UserDetails类型
-         */
-        if (authentication == null
-                || authentication.getPrincipal() == null
-                || !(authentication.getPrincipal() instanceof UserDetails)) {
-
-            throw new BusinessException(ResultCode.NOT_LOGIN);
-        }
-
-        /**
-         * 3. 获取当前登录用户名
-         *
-         * JWT过滤器中：
-         * new User(username, "", authorities)
-         *
-         * 所以这里可以直接获取用户名
-         */
-        UserDetails userDetails =
-                (UserDetails) authentication.getPrincipal();
-
-        String username = userDetails.getUsername();
-
-        /**
-         * 4. 查询数据库用户信息
-         */
-        LambdaQueryWrapper<SysUser> wrapper =
-                Wrappers.lambdaQuery();
-
-        wrapper.eq(SysUser::getUserName, username);
-
-        // 逻辑删除判断
-        wrapper.eq(SysUser::getIsDeleted, 0);
-
-        SysUser user = sysUserService.getOne(wrapper);
-
-        /**
-         * 5. 用户不存在
-         */
+        // ====================== 2. 查询数据库，获取最新用户资料 ======================
+        SysUser user = sysUserService.getById(loginUser.getUserId());
         if (user == null) {
-
-            throw new BusinessException(ResultCode.USER_NOT_EXIST);
+            return Result.fail(ResultCode.USER_NOT_EXIST);
         }
 
-        /**
-         * 6. 转换VO
-         */
-        SysUserSimpleVO vo =
-                BeanUtil.copyProperties(user, SysUserSimpleVO.class);
+        // ====================== 3. 转换 VO ======================
+        SysUserSimpleVO vo = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
 
-        /**
-         * 7. 昵称为空时
-         * 默认显示用户名
-         */
+        // 昵称为空时，默认显示用户名
         if (StrUtil.isBlank(vo.getNickName())) {
-
             vo.setNickName(user.getUserName());
         }
 
-        /**
-         * 8. 返回当前登录用户信息
-         */
-        return vo;
+        // ====================== 4. 可选：把角色/权限直接从 LoginUserContext 拿，避免数据库访问 ======================
+        vo.setRoles(loginUser.getRoles());
+        vo.setPermissions(loginUser.getPermissions());
+
+        // ====================== 5. 返回 ======================
+        return Result.success(vo);
     }
 }

@@ -1,5 +1,6 @@
 package com.inventory.service.auth;
 
+import com.inventory.common.result.Result;
 import com.inventory.entity.SysUserLoginDTO;
 import com.inventory.entity.SysUserRegisterDTO;
 import com.inventory.entity.SysUserSimpleVO;
@@ -30,5 +31,5 @@ public interface AuthService {
     /**
      * 获取当前用户
      */
-    SysUserSimpleVO currentUser();
+    Result<SysUserSimpleVO> currentUser();
 }
