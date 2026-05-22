@@ -153,6 +153,7 @@ public class AuthServiceImpl implements AuthService {
         LoginUserVO loginUser = new LoginUserVO();
         loginUser.setUserId(user.getId());
         loginUser.setUsername(user.getUserName());
+        loginUser.setNickName(user.getNickName());
         loginUser.setRoles(roles);
         loginUser.setPermissions(permissions);
         loginUser.setAdmin(roles.contains("SUPER_ADMIN"));
@@ -192,7 +193,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         // ====================== 8. 封装返回用户信息 ======================
-        SysUserSimpleVO userVO = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
+        SysUserSimpleVO userVO = BeanUtil.copyProperties(loginUser, SysUserSimpleVO.class);
         if (StrUtil.isBlank(userVO.getNickName())) {
             userVO.setNickName(user.getUserName());
         }
