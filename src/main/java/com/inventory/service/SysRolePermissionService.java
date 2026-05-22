@@ -14,14 +14,4 @@ import java.util.List;
 public interface SysRolePermissionService extends IService<SysRolePermission> {
 
 
-
-
-    /**
-     * 根据用户ID查询【用户拥有的菜单/权限列表】
-     * 只查询 M（目录）、C（菜单）类型，用于前端侧边栏渲染
-     *
-     * @param userId 用户ID
-     * @return 菜单/权限集合
-     */
-    List<SysPermission> listUserPermissionsByUserId(Long userId);
 }

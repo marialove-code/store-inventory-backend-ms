@@ -19,10 +19,6 @@ public class SysRolePermissionServiceImpl extends ServiceImpl<SysRolePermissionM
     implements SysRolePermissionService{
 
 
-    @Override
-    public List<SysPermission> listUserPermissionsByUserId(Long userId) {
-        return baseMapper.listUserPermissionsByUserId(userId);
-    }
 }
 
 

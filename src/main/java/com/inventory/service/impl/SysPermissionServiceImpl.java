@@ -3,12 +3,19 @@ package com.inventory.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.inventory.common.result.Result;
 import com.inventory.entity.SysPermission;
+import com.inventory.entity.SysRolePermission;
 import com.inventory.entity.menu.MenuVO;
+import com.inventory.mapper.SysRolePermissionMapper;
+import com.inventory.mapper.SysUserRoleMapper;
 import com.inventory.service.SysPermissionService;
 import com.inventory.mapper.SysPermissionMapper;
+import com.inventory.service.UserSessionService;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +31,15 @@ import java.util.stream.Collectors;
 public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, SysPermission>
     implements SysPermissionService{
 
+     @Resource
+     private SysRolePermissionMapper sysRolePermissionMapper;
 
+    @Resource
+    private SysUserRoleMapper userRoleMapper;
+
+
+    @Resource
+    private UserSessionService userSessionService;
     /**
      * 1. 根据用户ID查询权限标识集合（用于SpringSecurity权限校验）
      */
@@ -135,14 +150,187 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         return baseMapper.selectMenuPermissionsByUserId(userId);
     }
 
+    /**
+     * 修改菜单状态（禁用/启用，下级同步禁用）
+     * 1. 校验菜单是否存在
+     * 2. 校验状态值合法性
+     * 3. 禁用时：同步禁用所有子菜单，清权限缓存
+     * 4. 更新状态
+     */
     @Override
-    public void updateMenuStatus(Long id, Integer status) {
-        // 构建更新对象（只更新状态字段，效率更高）
-        SysPermission permission = new SysPermission();
-        permission.setId(id);
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> updateMenuStatus(Long id, Integer status) {
+        // 1. 校验菜单是否存在
+        SysPermission menu = this.getById(id);
+        if (menu == null) {
+            return Result.fail("菜单不存在");
+        }
+
+        // 2. 校验状态值
+        if (status == null || (status != 0 && status != 1)) {
+            return Result.fail("状态值不正确");
+        }
+
+        // 3. 递归获取当前菜单及其所有子菜单ID
+        List<Long> allMenuIds = new ArrayList<>();
+        collectChildMenuIds(id, allMenuIds);
+
+        // 4. 批量更新所有菜单状态
+        List<SysPermission> menuList = allMenuIds.stream()
+                .map(menuId -> {
+                    SysPermission m = new SysPermission();
+                    m.setId(menuId);
+                    m.setStatus(status);
+                    return m;
+                }).collect(Collectors.toList());
+        this.updateBatchById(menuList);
+
+        // 5. 禁用时清空权限缓存
+        if (status == 0) {
+            // 查出关联了这些菜单的角色ID
+            List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByMenuIds(allMenuIds);
+            for (Long roleId : roleIds) {
+                List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
+                for (Long userId : userIds) {
+                    userSessionService.kickUserOffline(userId);
+                }
+            }
+        }
+
+        return Result.success();
+    }
+
+    /**
+     * 删除菜单（级联删除子菜单 + 清关联 + 清权限缓存）
+     * 1. 校验菜单是否存在
+     * 2. 递归删除所有子菜单
+     * 3. 清除角色-菜单关联
+     * 4. 清除菜单-权限关联
+     * 5. 清空所有关联角色下用户的权限缓存
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> removeMenuById(Long id) {
+        // 1. 校验菜单是否存在
+        SysPermission menu = this.getById(id);
+        if (menu == null) {
+            return Result.fail("菜单不存在");
+        }
+
+        // 2. 递归删除所有子菜单（含自身）
+        List<Long> allMenuIds = new ArrayList<>();
+        collectChildMenuIds(id, allMenuIds);
+
+        // 3. 清除角色-菜单关联
+        LambdaQueryWrapper<SysRolePermission> roleMenuWrapper = new LambdaQueryWrapper<>();
+        roleMenuWrapper.in(SysRolePermission::getPermId, allMenuIds);
+        sysRolePermissionMapper.delete(roleMenuWrapper);
+
+        // 4. 清除菜单-权限关联（如果你的设计里有这个表）
+        // LambdaQueryWrapper<SysMenuPermission> menuPermWrapper = new LambdaQueryWrapper<>();
+        // menuPermWrapper.in(SysMenuPermission::getMenuId, allMenuIds);
+        // menuPermissionMapper.delete(menuPermWrapper);
+
+        // 5. 删除菜单数据
+        this.removeByIds(allMenuIds);
+
+        // 6. 清空所有关联角色下用户的权限缓存
+        // 先查出关联了这些菜单的角色ID
+        List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByMenuIds(allMenuIds);
+        for (Long roleId : roleIds) {
+            List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
+            for (Long userId : userIds) {
+                userSessionService.kickUserOffline(userId);
+            }
+        }
+
+        return Result.success();
+    }
+
+    /**
+     * 删除权限标识
+     * 1. 校验权限是否存在
+     * 2. 清除角色-权限关联
+     * 3. 清空所有关联角色下用户的权限缓存
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> removePermissionById(Long id) {
+        // 1. 校验权限是否存在
+        SysPermission permission = this.getById(id);
+        if (permission == null) {
+            return Result.fail("权限标识不存在");
+        }
+
+        // 2. 清除角色-权限关联
+        LambdaQueryWrapper<SysRolePermission> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRolePermission::getPermId, id);
+        sysRolePermissionMapper.delete(wrapper);
+
+        // 3. 删除权限标识
+        this.removeById(id);
+
+        // 4. 清空所有关联角色下用户的权限缓存
+        List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByPermId(id);
+        for (Long roleId : roleIds) {
+            List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
+            for (Long userId : userIds) {
+                userSessionService.kickUserOffline(userId);
+            }
+        }
+
+        return Result.success();
+    }
+
+    /**
+     * 修改权限状态（禁用/启用）
+     * 1. 校验权限是否存在
+     * 2. 校验状态值合法性
+     * 3. 禁用时：清空所有关联角色下用户的权限缓存
+     * 4. 更新状态
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> updatePermissionStatus(Long id, Integer status) {
+        // 1. 校验权限是否存在
+        SysPermission permission = this.getById(id);
+        if (permission == null) {
+            return Result.fail("权限标识不存在");
+        }
+
+        // 2. 校验状态值
+        if (status == null || (status != 0 && status != 1)) {
+            return Result.fail("状态值不正确");
+        }
+
+        // 3. 更新权限状态
         permission.setStatus(status);
-        // 根据ID更新
         this.updateById(permission);
+
+        // 4. 禁用时清空权限缓存
+        if (status == 0) {
+            List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByPermId(id);
+            for (Long roleId : roleIds) {
+                List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
+                for (Long userId : userIds) {
+                    userSessionService.kickUserOffline(userId);
+                }
+            }
+        }
+
+        return Result.success();
+    }
+
+    /**
+     * 递归收集当前菜单及其所有子菜单ID
+     */
+    private void collectChildMenuIds(Long parentId, List<Long> menuIds) {
+        menuIds.add(parentId);
+        List<SysPermission> children = this.list(new LambdaQueryWrapper<SysPermission>()
+                .eq(SysPermission::getParentId, parentId));
+        for (SysPermission child : children) {
+            collectChildMenuIds(child.getId(), menuIds);
+        }
     }
 
     /**

@@ -123,19 +123,10 @@ public class PermissionController {
     @DeleteMapping("/{id}")
     @RequiresPerm("system:permission:delete")
     public Result<Void> delete(@PathVariable Long id) {
-        sysPermissionService.removeById(id);
-        return Result.success();
+        return sysPermissionService.removePermissionById(id);
+
     }
 
-    /**
-     * 批量删除权限（可选，和角色管理保持一致）
-     */
-    @DeleteMapping("/batch")
-    @RequiresPerm("system:permission:batchDelete")
-    public Result<Void> batchDelete(@RequestBody List<Long> ids) {
-        sysPermissionService.removeByIds(ids);
-        return Result.success();
-    }
 
     /**
      * 修改权限状态（启用/禁用）
@@ -146,11 +137,9 @@ public class PermissionController {
             @PathVariable Long id,
             @RequestParam Integer status
     ) {
-        SysPermission permission = new SysPermission();
-        permission.setId(id);
-        permission.setStatus(status);
-        sysPermissionService.updateById(permission);
-        return Result.success();
+
+        return sysPermissionService.updatePermissionStatus(id, status);
+
     }
 
     /**

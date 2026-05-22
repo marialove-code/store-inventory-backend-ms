@@ -91,180 +91,128 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String requestURI = request.getRequestURI();
-            System.out.println("当前请求URI：" + request.getRequestURI());
-            // 这里新增 ↓↓↓↓↓↓↓↓↓
+            System.out.println("当前请求URI：" + requestURI);
+
+            // 免过滤路径（上传头像等）
             if (requestURI.startsWith("/api/upload/avatar/")) {
                 filterChain.doFilter(request, response);
                 return;
             }
-            /**
-             * 1. 获取请求头中的Token
-             */
+
+            // 1. 获取请求头中的Token
             String token = request.getHeader(header);
 
-            /**
-             * 2. Token不存在或格式不对，直接放行
-             *
-             * 后续由SpringSecurity决定是否拦截
-             */
+            // 2. Token不存在或格式不对，直接放行（由SpringSecurity决定是否拦截）
             if (StrUtil.isBlank(token) || !token.startsWith(tokenPrefix)) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            /**
-             * 3. 去掉 Bearer 前缀
-             */
+            // 3. 去掉 Bearer 前缀
             token = token.substring(tokenPrefix.length()).trim();
 
-            /**
-             * 4. 校验Token是否过期
-             *
-             * 【优化】如果过期，返回1102错误码，前端自动刷新
-             */
+            // 4. 校验Token是否过期
             if (jwtUtil.isTokenExpired(token)) {
-                writeErrorResponse(response, TOKEN_EXPIRED_CODE, "Token已过期");
+                writeErrorResponseWithRedirect(response, TOKEN_EXPIRED_CODE, "登录已过期，请重新登录");
                 return;
             }
 
-            /**
-             * 5. 校验Token签名是否有效
-             */
+            // 5. 校验Token签名是否有效
             if (!jwtUtil.validateToken(token)) {
-                writeErrorResponse(response, TOKEN_EXPIRED_CODE, "Token无效");
+                writeErrorResponseWithRedirect(response, TOKEN_EXPIRED_CODE, "Token无效，请重新登录");
                 return;
             }
 
-            // ===================== 新增自动续期逻辑开始 =====================
-            // 获取当前token剩余有效时长（秒）
+            // ===================== 自动续期逻辑 =====================
             long remainExpireSecond = jwtUtil.getRemainExpireTime(token);
-            // 判断是否达到续期条件：剩余时间小于阈值
             if (remainExpireSecond < RENEW_THRESHOLD_SECOND) {
-                // 解析当前用户信息
                 Long userId = jwtUtil.getUserId(token);
                 String username = jwtUtil.getUsername(token);
-                // 生成全新accessToken
                 String newAccessToken = jwtUtil.createAccessToken(userId, username);
-                // 将新令牌放入响应头返回给前端
                 response.setHeader(NEW_TOKEN_HEADER, tokenPrefix + newAccessToken);
-                log.info("用户{}令牌临近过期，已自动完成续期", username);
+                log.info("用户{}令牌临近过期，已自动续期", username);
             }
-            // ===================== 新增自动续期逻辑结束 =====================
 
-
-            /**
-             * 6. Redis登录态校验
-             *
-             * 防止：
-             * - 退出登录后JWT仍然有效
-             * - 用户被踢下线
-             * - 用户被禁用
-             */
-            String redisKey = RedisConstants.LOGIN_TOKEN_KEY + token;
+            // 6. Redis登录态校验（改成多设备 + 权限缓存统一前缀）
+            Long userId = jwtUtil.getUserId(token);
+            String redisKey = RedisConstants.LOGIN_ACCESS_PREFIX + userId + ":access:" + token;
             Object loginUserObj = redisTemplate.opsForValue().get(redisKey);
 
             if (loginUserObj == null) {
-                log.warn("登录态已失效: {}", token);
-                writeErrorResponse(response, TOKEN_EXPIRED_CODE, "登录态已失效");
+                log.warn("登录态已失效或被踢下线: {}", token);
+
+                // 返回提示并告诉前端跳转登录页
+                writeErrorResponseWithRedirect(response, TOKEN_EXPIRED_CODE,
+                        "权限已变更或登录失效，即将跳转登录页");
                 return;
             }
 
-            /**
-             * 7. 防止重复认证
-             */
+            // 7. 防止重复认证
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                /**
-                 * 8. 从JWT解析用户信息
-                 */
-                Long userId = jwtUtil.getUserId(token);
-                String username = jwtUtil.getUsername(token);
-
-                /**
-                 * 9. 从Redis获取真实登录用户
-                 */
+                // 8. 从Redis获取真实登录用户
                 LoginUserVO loginUser = (LoginUserVO) loginUserObj;
 
-                /**
-                 * 10. 存入ThreadLocal
-                 *
-                 * 后续业务代码可直接获取：
-                 * LoginUserContext.getUserId()
-                 */
+                // 9. 存入ThreadLocal
                 LoginUserContext.setUser(loginUser);
 
-                /**
-                 * 11. 权限列表
-                 */
+                // 10. 权限列表（SpringSecurity内部不用）
                 List<SimpleGrantedAuthority> authorities = Collections.emptyList();
 
-                /**
-                 * 12. SpringSecurity用户对象
-                 */
-                User user = new User(username, "", authorities);
+                // 11. 构建SpringSecurity用户对象
+                User user = new User(loginUser.getUsername(), "", authorities);
 
-                /**
-                 * 13. 构建认证对象
-                 */
+                // 12. 构建认证对象
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                authorities
-                        );
+                        new UsernamePasswordAuthenticationToken(user, null, authorities);
 
-                /**
-                 * 14. 设置请求详情
-                 */
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                // 13. 设置请求详情
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                /**
-                 * 15. 存入SpringSecurity上下文
-                 */
+                // 14. 存入SpringSecurity上下文
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 
-            /**
-             * 16. 放行请求
-             */
+            // 15. 放行请求
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            /**
-             * 【优化】捕获异常，返回统一错误格式
-             * 原因：Filter抛的异常@ControllerAdvice捕获不到
-             */
             log.error("JWT认证失败: {}", e.getMessage(), e);
-            writeErrorResponse(response, TOKEN_EXPIRED_CODE, "认证失败: " + e.getMessage());
-
+            writeErrorResponseWithRedirect(response, TOKEN_EXPIRED_CODE,
+                    "认证失败: " + e.getMessage());
         } finally {
-            /**
-             * 必须清理ThreadLocal
-             *
-             * 防止线程复用导致用户数据串号
-             */
+            // 清理ThreadLocal，防止线程复用串号
             LoginUserContext.clear();
         }
     }
 
+
     /**
      * ============================================
-     * 写入错误响应
+     * 写入错误响应（带前端跳转信息）
      * ============================================
      *
      * 【关键】Filter中必须手动写响应，因为@ControllerAdvice捕获不到Filter的异常
      *
-     * @param response HTTP响应
-     * @param code     错误码（1102表示Token过期，前端自动刷新）
-     * @param msg      错误信息
+     * @param response      HTTP响应
+     * @param code          错误码
+     * @param msg           错误信息
      */
-    private void writeErrorResponse(HttpServletResponse response, int code, String msg) throws IOException {
+    private void writeErrorResponseWithRedirect(HttpServletResponse response, int code, String msg) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
 
-        String json = String.format("{\"code\":%d,\"msg\":\"%s\"}", code, msg);
+        // JSON返回内容，前端根据 redirectLogin 和 redirectDelay 处理跳转
+        String json = String.format(
+                "{" +
+                        "\"code\":%d," +
+                        "\"msg\":\"%s\"," +
+                        "\"redirectLogin\":true," +  // 标记前端跳转登录页
+                        "\"redirectDelay\":2000" +   // 延迟3秒跳转（毫秒）
+                        "}",
+                code, msg
+        );
+
         response.getWriter().write(json);
     }
 }

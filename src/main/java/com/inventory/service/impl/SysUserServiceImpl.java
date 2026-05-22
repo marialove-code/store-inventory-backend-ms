@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.inventory.common.exception.BusinessException;
+import com.inventory.common.result.Result;
 import com.inventory.common.result.ResultCode;
 import com.inventory.common.utils.DesensitizeUtil;
 import com.inventory.constant.RedisConstants;
@@ -21,6 +22,7 @@ import com.inventory.entity.login.LoginUserVO;
 import com.inventory.mapper.SysUserMapper;
 import com.inventory.mapper.SysUserRoleMapper;
 import com.inventory.service.SysUserService;
+import com.inventory.service.UserSessionService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -28,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,6 +49,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final RedisTemplate<String, Object> redisTemplate;
 
     private final SysUserRoleMapper sysUserRoleMapper;
+
+    @Resource
+    private UserSessionService userSessionService;
 
 
     @Override
@@ -134,53 +140,47 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
         this.update(wrapper);
     }
-
+    /**
+     * 修改用户状态（禁用/启用）
+     * 1. 校验用户是否存在
+     * 2. 保护超级管理员
+     * 3. 校验状态值是否合法
+     * 4. 禁用时：强制用户下线
+     * 5. 更新用户状态
+     */
     @Override
-    public void updateStatus(Long id, Integer status) {
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> updateUserStatus(Long id, Integer status) {
+
+        // 1. 校验用户是否存在
         SysUser user = this.getById(id);
-        if (user == null || user.getIsDeleted() == 1) {
-            throw new BusinessException(ResultCode.USER_NOT_EXIST);
+        if (user == null) {
+            return Result.fail("用户不存在");
         }
 
+        // 2. 超级管理员不允许禁用
+        if ("super_admin".equals(user.getUserName())) {
+            return Result.fail("超级管理员账号不允许修改状态");
+        }
+
+        // 3. 校验状态值是否合法
+        if (status == null || (status != 0 && status != 1)) {
+            return Result.fail("状态值不正确");
+        }
+
+        // 4. 如果是禁用操作 → 立即强制下线
+        if (status == 0) {
+            userSessionService.kickUserOffline(id);
+        }
+
+        // 5. 更新用户状态
         user.setStatus(status);
         this.updateById(user);
 
-        // ==============================================
-        // ✅ 【关键：禁用用户 → 删 Redis token，强制下线】
-        // ==============================================
-        if (status == 0) {
-            kickUserOffline(id);
-        }
+        return Result.success();
     }
 
-    /**
-     * 踢用户下线：删除 Redis 中所有 accessToken + refreshToken
-     */
-    private void kickUserOffline(Long userId) {
-        // 1. 删除所有 accessToken
-        String accessPattern = RedisConstants.LOGIN_TOKEN_KEY + "*";
-        Set<String> accessKeys = redisTemplate.keys(accessPattern);
-        if (CollUtil.isNotEmpty(accessKeys)) {
-            for (String key : accessKeys) {
-                LoginUserVO loginUser = (LoginUserVO) redisTemplate.opsForValue().get(key);
-                if (loginUser != null && userId.equals(loginUser.getUserId())) {
-                    redisTemplate.delete(key);
-                }
-            }
-        }
 
-        // 2. 删除所有 refreshToken
-        String refreshPattern = RedisConstants.LOGIN_REFRESH_KEY + "*";
-        Set<String> refreshKeys = redisTemplate.keys(refreshPattern);
-        if (CollUtil.isNotEmpty(refreshKeys)) {
-            for (String key : refreshKeys) {
-                Long redisUserId = (Long) redisTemplate.opsForValue().get(key);
-                if (userId.equals(redisUserId)) {
-                    redisTemplate.delete(key);
-                }
-            }
-        }
-    }
 
     @Override
     public void resetPassword(Long id) {
@@ -243,28 +243,133 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 根据ID删除用户（带事务、踢下线、清理关联数据）
+     * 1. 校验用户是否存在
+     * 2. 保护超级管理员不被删除
+     * 3. 强制用户下线（清空Token + 权限缓存）
+     * 4. 删除用户与角色的关联数据
+     * 5. 删除用户本身
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class) // 开启事务，确保删除和插入要么都成功要么都失败
-    public void saveUserRole(Long userId, List<Long> roleIds) {
-        // 第一步：删除该用户所有旧的角色关联
-        LambdaQueryWrapper<SysUserRole> deleteWrapper = new LambdaQueryWrapper<>();
-        deleteWrapper.eq(SysUserRole::getUserId, userId);
-        sysUserRoleMapper.delete(deleteWrapper);
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> removeUserById(Long id) {
 
-        // 第二步：批量插入新的角色关联
-        if (!CollectionUtils.isEmpty(roleIds)) {
-            List<SysUserRole> userRoleList = roleIds.stream()
+        // 1. 校验：用户是否存在
+        SysUser user = this.getById(id);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+
+        // 2. 保护超级管理员，不允许删除
+        if ("super_admin".equals(user.getUserName())) {
+            return Result.fail("超级管理员账号不允许删除");
+        }
+
+        // 3. 强制用户下线：清空双Token + 权限缓存
+        userSessionService.kickUserOffline(id);
+
+        // 4. 删除用户与角色的关联数据（sys_user_role）
+        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getUserId, id));
+
+        // 5. 删除用户本身
+        this.removeById(id);
+        return Result.success();
+    }
+
+
+    /**
+     * 批量删除用户
+     * 1. 校验参数合法性
+     * 2. 拦截超级管理员账号删除
+     * 3. 逐个清理下线缓存、关联数据
+     * 4. 批量删除用户数据
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> batchRemoveUser(List<Long> idList) {
+        // 校验传入ID集合
+        if(CollectionUtils.isEmpty(idList)){
+            return Result.fail("请选择待删除用户");
+        }
+
+        List<String> errorMsg = new ArrayList<>();
+        List<Long> allowDelIds = new ArrayList<>();
+
+        // 遍历校验每条用户数据
+        for (Long userId : idList) {
+            SysUser user = this.getById(userId);
+            if(user == null){
+                errorMsg.add("ID["+userId+"]用户不存在");
+                continue;
+            }
+            // 禁止删除超级管理员
+            if("super_admin".equals(user.getUserName())){
+                errorMsg.add("超级管理员账号不可删除");
+                continue;
+            }
+            allowDelIds.add(userId);
+        }
+
+        // 存在校验异常直接返回
+        if(!errorMsg.isEmpty()){
+            return Result.fail(String.join("；",errorMsg));
+        }
+        if(allowDelIds.isEmpty()){
+            return Result.fail("无符合删除条件的用户");
+        }
+
+        // 逐个清理下线缓存、用户角色关联
+        for (Long userId : allowDelIds) {
+            // 强制下线清空令牌与权限缓存
+            userSessionService.kickUserOffline(userId);            // 删除用户角色关联数据
+            sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+                    .eq(SysUserRole::getUserId,userId));
+        }
+
+        // 批量删除用户主体数据
+        this.removeByIds(allowDelIds);
+        return Result.success();
+    }
+
+    /**
+     * 用户分配/解绑角色
+     * 先清空原有角色关联，再新增绑定关系
+     * 权限变更后清空该用户权限缓存
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> assignUserRole(Long userId, List<Long> roleIdList) {
+        // 校验用户是否存在
+        SysUser user = this.getById(userId);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+
+        // 先删除该用户所有原有角色关联
+        LambdaQueryWrapper<SysUserRole> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUserRole::getUserId, userId);
+        sysUserRoleMapper.delete(wrapper);
+
+        // 批量新增角色绑定关系
+        if (!CollectionUtils.isEmpty(roleIdList)) {
+            List<SysUserRole> userRoleList = roleIdList.stream()
                     .map(roleId -> {
                         SysUserRole userRole = new SysUserRole();
-                        // 关键：手动生成雪花ID
                         userRole.setId(IdWorker.getId());
                         userRole.setUserId(userId);
                         userRole.setRoleId(roleId);
                         return userRole;
-                    })
-                    .collect(Collectors.toList());
-
+                    }).collect(Collectors.toList());
             sysUserRoleMapper.batchInsert(userRoleList);
         }
+
+        // 角色变更，清空用户权限缓存
+        userSessionService.kickUserOffline(userId);    // 删除用户角色关联数据
+        return Result.success();
     }
+
+
+
 }

@@ -15,8 +15,6 @@ import java.util.List;
 */
 public interface SysRolePermissionMapper extends BaseMapper<SysRolePermission> {
 
-    List<SysPermission> listUserPermissionsByUserId(@Param("userId") Long userId);
-
 
 
     /**
@@ -28,6 +26,26 @@ public interface SysRolePermissionMapper extends BaseMapper<SysRolePermission> {
 
 
 
+
+    /**
+     * 根据角色ID删除相关权限
+     * @param roleId
+     */
+    void deleteByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 根据菜单ID列表查询关联的角色ID
+     * @param menuIds 菜单ID列表
+     * @return 角色ID列表
+     */
+    List<Long> selectRoleIdsByMenuIds(@Param("menuIds") List<Long> menuIds);
+
+    /**
+     * 根据权限ID查询关联的角色ID
+     * @param permId 权限ID
+     * @return 角色ID列表
+     */
+    List<Long> selectRoleIdsByPermId(@Param("permId") Long permId);
 }
 
 

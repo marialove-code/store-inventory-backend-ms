@@ -2,6 +2,7 @@ package com.inventory.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.inventory.common.result.Result;
 import com.inventory.entity.SysUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.inventory.entity.SysUserListVO;
@@ -33,9 +34,11 @@ public interface SysUserService extends IService<SysUser>  {
 
     /**
      * 修改用户状态
+     * @param id 用户ID
+     * @param status 状态 0禁用 1启用
+     * @return 统一返回结果
      */
-    void updateStatus(Long id, Integer status);
-
+    Result<Void> updateUserStatus(Long id, Integer status);
     /**
      * 重置用户密码为123456
      */
@@ -69,11 +72,26 @@ public interface SysUserService extends IService<SysUser>  {
      */
     List<Long> getUserRoleIds(Long userId);
 
+
     /**
-     * 保存用户与角色的关联关系
-     * 采用"先删后插"的原子性操作，简单高效
-     * @param userId 用户ID
-     * @param roleIds 要分配的角色ID列表
+     * 根据ID删除用户
+     * @param id 用户ID
+     * @return 统一返回结果
      */
-    void saveUserRole(Long userId, List<Long> roleIds);
-}
+    Result<Void> removeUserById(Long id);
+
+
+    /**
+     * 批量删除用户
+     * @param idList 用户ID集合
+     * @return 统一返回结果
+     */
+    Result<Void> batchRemoveUser(List<Long> idList);
+
+    /**
+     * 用户分配解绑角色
+     * @param userId 用户ID
+     * @param roleIdList 最新绑定角色ID列表
+     * @return 操作结果
+     */
+    Result<Void> assignUserRole(Long userId, List<Long> roleIdList);}

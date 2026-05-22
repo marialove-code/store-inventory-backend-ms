@@ -58,8 +58,7 @@ public class SysUserController {
     @RequiresPerm("system:user:changeStatus")
     @OperationLog(title = "修改状态", type = OperationTypeEnum.UPDATE)
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
-        sysUserService.updateStatus(id, status);
-        return Result.success();
+        return sysUserService.updateUserStatus(id, status);
     }
 
     @PutMapping("/{id}/resetPassword")
@@ -74,16 +73,15 @@ public class SysUserController {
     @RequiresPerm("system:user:delete")
     @OperationLog(title = "删除用户", type = OperationTypeEnum.DELETE)
     public Result<Void> delete(@PathVariable Long id) {
-        sysUserService.deleteUser(id);
-        return Result.success();
+        return sysUserService.removeUserById(id);
     }
 
     @DeleteMapping("/batch")
     @RequiresPerm("system:user:delete")
     @OperationLog(title = "批量删除", type = OperationTypeEnum.DELETE)
     public Result<Void> batchDelete(@RequestBody List<Long> ids) {
-        sysUserService.batchDelete(ids);
-        return Result.success();
+        return sysUserService.batchRemoveUser(ids);
+
     }
 
     /**
@@ -103,8 +101,7 @@ public class SysUserController {
             @PathVariable Long userId,
             @RequestBody List<Long> roleIds
     ) {
-        sysUserService.saveUserRole(userId, roleIds);
-        return Result.success();
+        return sysUserService.assignUserRole(userId, roleIds);
     }
 
 

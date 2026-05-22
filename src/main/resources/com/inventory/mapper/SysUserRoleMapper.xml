@@ -23,4 +23,21 @@
             (#{item.id},#{item.userId}, #{item.roleId})
         </foreach>
     </insert>
+
+
+    <!--
+       功能：根据角色ID查询关联的用户ID
+       表：sys_user_role
+       用途：删除/禁用角色时，拿到用户ID → 踢下线、删token
+   -->
+    <select id="selectUserIdsByRoleId" resultType="java.lang.Long">
+        SELECT user_id
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+    </select>
+
+
+    <select id="countByRoleId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sys_user_role WHERE role_id = #{roleId}
+    </select>
 </mapper>

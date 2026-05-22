@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.inventory.common.constant.PermissionConstants.SUPER_PERM_CODE;
@@ -106,108 +107,111 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
 
-        // ====================== ✅【新增：校验用户是否被禁用】status=0 禁用 ======================
+        // ====================== 2. 校验用户是否被禁用 ======================
         if (user.getStatus() == 0) {
             throw new BusinessException(ResultCode.ACCOUNT_DISABLED); // 账号已被禁用
         }
-        // ====================================================================================
 
-        // ====================== 2. 密码校验 ======================
+        // ====================== 3. 密码校验 ======================
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
 
-
-
-
-        // ====================== 3. 查询用户角色 + 权限 ======================
+        // ====================== 4. 查询用户角色 + 权限 ======================
         List<String> roles = sysRoleService.listRoleCodesByUserId(user.getId());
-
-        // 2. 判断是否是超级管理员（只要包含 SUPER_ADMIN 角色）
         boolean isSuperAdmin = roles.contains("SUPER_ADMIN");
 
         List<String> permissions;
         if (isSuperAdmin) {
-            // 超级管理员：所有权限
-            permissions = sysPermissionService.listAllPermCodes();
+            permissions = sysPermissionService.listAllPermCodes(); // 超级管理员：所有权限
         } else {
-            // 普通用户：按角色查权限，过滤掉 *:*:* 超级权限
             List<String> rawPermissions = sysPermissionService.listPermCodesByUserId(user.getId());
-            List<String> userPermissions = new ArrayList<>();
+            permissions = new ArrayList<>();
             if (rawPermissions != null && !rawPermissions.isEmpty()) {
                 for (String code : rawPermissions) {
-                    // 只保留不是 *:*:* 的权限码
-                    if (!SUPER_PERM_CODE.equals(code)) {
-                        userPermissions.add(code);
+                    if (!SUPER_PERM_CODE.equals(code)) { // 过滤 *:*:* 超级权限
+                        permissions.add(code);
                     }
                 }
             }
-            permissions = userPermissions;
         }
 
-        // ====================== 4. 生成 JWT 双 Token ======================
+        // ====================== 5. 生成 JWT 双 Token ======================
         String accessToken = jwtUtil.createAccessToken(user.getId(), user.getUserName());
         String refreshToken = jwtUtil.createRefreshToken(user.getId(), user.getUserName());
 
-        // ====================== 5. 封装登录用户信息 ======================
+        // ====================== 6. 封装登录用户信息 ======================
         LoginUserVO loginUser = new LoginUserVO();
         loginUser.setUserId(user.getId());
         loginUser.setUsername(user.getUserName());
         loginUser.setNickName(user.getNickName());
         loginUser.setRoles(roles);
         loginUser.setPermissions(permissions);
-        loginUser.setAdmin(roles.contains("SUPER_ADMIN"));
+        loginUser.setAdmin(isSuperAdmin);
 
-        // ====================== 6. Redis 存储 AccessToken 登录态（✅ 关键修复） ======================
-        /**
-         * Redis Key
-         */
-        String redisKey =
-                RedisConstants.LOGIN_TOKEN_KEY + accessToken;
-
-        /**
-         * 存储完整登录用户信息
-         *
-         * 后续JWT过滤器会直接从Redis获取：
-         * - userId
-         * - username
-         * - roles
-         * - permissions
-         *
-         * 避免每次请求查数据库
-         */
+        // ====================== 7. Redis 存储 AccessToken 登录态（多设备支持） ======================
+        String redisAccessKey = "user:token:" + user.getId() + ":access:" + accessToken;
         redisTemplate.opsForValue().set(
-                redisKey,
-                loginUser,   // ✅ 改成存 LoginUserVO
+                redisAccessKey,
+                loginUser,
                 accessExpire,
                 TimeUnit.MINUTES
         );
 
-// ====================== 7. Redis 存储 RefreshToken ======================
-
+        // ====================== 8. Redis 存储 RefreshToken（多设备支持） ======================
+        String redisRefreshKey = "user:token:" + user.getId() + ":refresh:" + refreshToken;
         redisTemplate.opsForValue().set(
-                RedisConstants.LOGIN_REFRESH_KEY + refreshToken,
+                redisRefreshKey,
                 user.getId(),
                 refreshExpire,
                 TimeUnit.MINUTES
         );
 
-        // ====================== 8. 封装返回用户信息 ======================
+        // ====================== 9. Redis 单独存储用户权限缓存（便于下线/角色变更） ======================
+        String redisPermKey = "user:perm:" + user.getId();
+        redisTemplate.opsForValue().set(
+                redisPermKey,
+                permissions,          // 只存权限码列表
+                accessExpire,         // 与 AccessToken 同步过期时间
+                TimeUnit.MINUTES
+        );
+
+        // ====================== 10. 封装返回给前端 ======================
         SysUserSimpleVO userVO = BeanUtil.copyProperties(loginUser, SysUserSimpleVO.class);
         if (StrUtil.isBlank(userVO.getNickName())) {
             userVO.setNickName(user.getUserName());
         }
 
-        // ====================== 9. 封装统一返回 VO ======================
         LoginTokenVO vo = new LoginTokenVO();
         vo.setToken(accessToken);
         vo.setAccessToken(accessToken);
         vo.setRefreshToken(refreshToken);
         vo.setUser(userVO);
-        // 转换并存入ThreadLocal（这里是关键修改点）
-
 
         return vo;
+    }
+
+    /**
+     * 踢用户下线：删除 Redis 中所有 AccessToken、RefreshToken 和权限缓存
+     *
+     * @param userId 用户ID
+     */
+    private void kickUserOffline(Long userId) {
+        // ----------------- 1. 删除该用户所有 AccessToken -----------------
+        Set<String> accessKeys = redisTemplate.keys("user:token:" + userId + ":access:*");
+        if (accessKeys != null && !accessKeys.isEmpty()) {
+            redisTemplate.delete(accessKeys);
+        }
+
+        // ----------------- 2. 删除该用户所有 RefreshToken -----------------
+        Set<String> refreshKeys = redisTemplate.keys("user:token:" + userId + ":refresh:*");
+        if (refreshKeys != null && !refreshKeys.isEmpty()) {
+            redisTemplate.delete(refreshKeys);
+        }
+
+        // ----------------- 3. 删除该用户权限缓存 -----------------
+        String permKey = "user:perm:" + userId;
+        redisTemplate.delete(permKey);
     }
 
     // ========================== 登出（你原有代码） ==========================
@@ -224,7 +228,7 @@ public class AuthServiceImpl implements AuthService {
             }
 
             redisTemplate.delete(
-                    RedisConstants.LOGIN_TOKEN_KEY + token
+                    RedisConstants.LOGIN_ACCESS_PREFIX + token
             );
         }
 
@@ -234,7 +238,7 @@ public class AuthServiceImpl implements AuthService {
             refreshToken = refreshToken.trim();
 
             redisTemplate.delete(
-                    RedisConstants.LOGIN_REFRESH_KEY + refreshToken
+                    RedisConstants.LOGIN_REFRESH_PREFIX + refreshToken
             );
         }
 
@@ -256,7 +260,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // ====================== 3. 校验 Redis 是否存在（防止被踢下线） ======================
-        Boolean hasKey = redisTemplate.hasKey(RedisConstants.LOGIN_REFRESH_KEY + refreshToken);
+        Boolean hasKey = redisTemplate.hasKey(RedisConstants.LOGIN_REFRESH_PREFIX + refreshToken);
         if (Boolean.FALSE.equals(hasKey)) {
             throw new BusinessException(ResultCode.LOGIN_STATUS_INVALID);
         }
@@ -298,7 +302,7 @@ public class AuthServiceImpl implements AuthService {
 
         // ====================== 9. 保存新 AccessToken 到 Redis ======================
         redisTemplate.opsForValue().set(
-                RedisConstants.LOGIN_TOKEN_KEY + newAccessToken,
+                RedisConstants.LOGIN_ACCESS_PREFIX + newAccessToken,
                 loginUser,
                 accessExpire,
                 TimeUnit.MINUTES

@@ -100,8 +100,7 @@ public class SysRoleController {
     @DeleteMapping("/{id}")
     @RequiresPerm("system:role:delete")
     public Result<Void> delete(@PathVariable Long id) {
-        sysRoleService.removeById(id);
-        return Result.success();
+        return sysRoleService.removeRoleById(id);
     }
 
     /**
@@ -110,8 +109,7 @@ public class SysRoleController {
     @DeleteMapping("/batch")
     @RequiresPerm("system:role:batchDelete")
     public Result<Void> batchDelete(@RequestBody List<Long> ids) {
-        sysRoleService.removeByIds(ids);
-        return Result.success();
+        return  sysRoleService.removeRoleByIds(ids);
     }
 
     /**
@@ -123,11 +121,8 @@ public class SysRoleController {
             @PathVariable Long id,
             @RequestParam Integer status
     ) {
-        SysRole role = new SysRole();
-        role.setId(id);
-        role.setStatus(status);
-        sysRoleService.updateById(role);
-        return Result.success();
+
+        return sysRoleService.updateByRoleId(id,status);
     }
 
     /**
@@ -163,8 +158,7 @@ public class SysRoleController {
             @PathVariable Long roleId,
             @RequestBody List<Long> permIds
     ) {
-        sysRoleService.saveRolePermission(roleId, permIds);
-        return Result.success();
+        return sysRoleService.saveRolePermission(roleId, permIds);
     }
 
 }

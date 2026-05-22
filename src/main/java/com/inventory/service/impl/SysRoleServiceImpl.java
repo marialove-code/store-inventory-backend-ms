@@ -6,23 +6,31 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.inventory.common.exception.BusinessException;
+import com.inventory.common.result.Result;
 import com.inventory.context.LoginUserContext;
 import com.inventory.entity.SysPermission;
 import com.inventory.entity.SysRole;
 import com.inventory.entity.SysRolePermission;
+import com.inventory.entity.SysUserRole;
 import com.inventory.entity.login.LoginUserVO;
 import com.inventory.entity.menu.MenuVO;
 import com.inventory.entity.menu.SysRoleListVO;
 import com.inventory.mapper.SysPermissionMapper;
 import com.inventory.mapper.SysRolePermissionMapper;
+import com.inventory.mapper.SysUserRoleMapper;
 import com.inventory.service.SysPermissionService;
 import com.inventory.service.SysRoleService;
 import com.inventory.mapper.SysRoleMapper;
+import com.inventory.service.UserSessionService;
 import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,11 +40,16 @@ import java.util.stream.Collectors;
 * @createDate 2026-05-09 17:31:43
 */
 @Service
+@RequiredArgsConstructor
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     implements SysRoleService{
 
+
     @Resource
     private SysRoleMapper sysRoleMapper;
+
+    @Resource
+    private SysUserRoleMapper userRoleMapper;
 
     // 注入权限Service，复用你已经写好的方法
     @Resource
@@ -46,6 +59,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     private SysRolePermissionMapper rolePermissionMapper;
     @Resource
     private  SysPermissionMapper sysPermissionMapper;
+    @Resource
+    private UserSessionService userSessionService;
 
     /**
      * 角色分页条件查询
@@ -119,19 +134,30 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveRolePermission(Long roleId, List<Long> permIds) {
-        // 1. 删除该角色所有旧权限
+    public Result<Void> saveRolePermission(Long roleId, List<Long> permIds) {
+
+        // ===================== 1. 业务校验 =====================
+        SysRole role = this.getById(roleId);
+        if (role == null) {
+            return Result.fail("角色不存在");
+        }
+
+        // 超级管理员不允许修改权限
+        if ("SUPER_ADMIN".equals(role.getRoleCode())) {
+            return Result.fail("超级管理员角色权限不可修改");
+        }
+
+        // ===================== 2. 删除该角色所有旧权限 =====================
         LambdaQueryWrapper<SysRolePermission> deleteWrapper = new LambdaQueryWrapper<>();
-        deleteWrapper.eq(SysRolePermission::getRoleId, roleId);
+        deleteWrapper.eq(SysRolePermission :: getRoleId, roleId);
         rolePermissionMapper.delete(deleteWrapper);
 
-        // 2. 批量插入新权限
+        // ===================== 3. 批量插入新权限 =====================
         if (!CollectionUtils.isEmpty(permIds)) {
             List<SysRolePermission> rolePermList = permIds.stream()
                     .map(permId -> {
                         SysRolePermission rolePerm = new SysRolePermission();
-                        // 同样手动生成雪花ID
-                        rolePerm.setId(IdWorker.getId());
+                        rolePerm.setId(IdWorker.getId()); // 你的雪花ID
                         rolePerm.setRoleId(roleId);
                         rolePerm.setPermId(permId);
                         return rolePerm;
@@ -140,6 +166,15 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
 
             rolePermissionMapper.batchInsert(rolePermList);
         }
+
+        // ===================== 4. 权限已修改 → 清理关联用户权限缓存 =====================
+        List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
+        for (Long userId : userIds) {
+            // 清空权限缓存（必须加！）
+            userSessionService.kickUserOffline(userId);
+        }
+
+        return Result.success();
     }
 
     /**
@@ -151,6 +186,156 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     public List<String> listRoleCodesByUserId(Long userId) {
         return baseMapper.listRoleCodesByUserId(userId);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)  // 👈 加这个
+    public Result<Void> removeRoleById(Long id) {
+        String msg = null;
+        SysRole role = this.getById(id);
+
+        if (role == null) {
+            msg = "角色不存在";
+        } else if ("SUPER_ADMIN".equals(role.getRoleCode())) {
+            msg = "超级管理员角色不允许删除";
+        } else if (userRoleMapper.countByRoleId(id) > 0) {
+            msg = "该角色下存在关联用户，无法删除";
+        }
+
+        if (msg != null) {
+            return Result.fail(msg);
+        }
+
+        // 查询关联用户并下线
+        List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(id);
+        batchKickOffline(userIds);
+        // 删除关联数据与角色
+        rolePermissionMapper.deleteByRoleId(id);
+        this.removeById(id);
+
+        return Result.success();
+
+    }
+
+
+    /**
+     * 批量踢下线，清空双token与权限缓存
+     */
+    private void batchKickOffline(List<Long> userIdList) {
+        for (Long userId : userIdList) {
+            userSessionService.kickUserOffline(userId);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 事务：批量操作必须加
+    public Result<Void> removeRoleByIds(List<Long> ids) {
+        // 1. 空集合校验
+        if (ids == null || ids.isEmpty()) {
+            return Result.fail("请选择要删除的角色");
+        }
+
+        // 2. 批量校验：所有角色必须 【不是超级管理员】 + 【无关联用户】
+        List<Long> allowDeleteIds = new ArrayList<>();
+        List<String> errorMessages = new ArrayList<>();
+
+        for (Long roleId : ids) {
+            SysRole role = this.getById(roleId);
+
+            // 角色不存在
+            if (role == null) {
+                errorMessages.add("角色ID[" + roleId + "]不存在");
+                continue;
+            }
+
+            // 超级管理员不允许删
+            if ("SUPER_ADMIN".equals(role.getRoleCode())) {
+                errorMessages.add("超级管理员角色不允许删除");
+                continue;
+            }
+
+            // 有关联用户不允许删
+            long userCount = userRoleMapper.countByRoleId(roleId);
+            if (userCount > 0) {
+                errorMessages.add("角色[" + role.getRoleName() + "]下存在用户，无法删除");
+                continue;
+            }
+
+            // 校验通过，可以删除
+            allowDeleteIds.add(roleId);
+        }
+
+        // 3. 如果有错误信息，直接返回给前端（不执行任何删除）
+        if (!errorMessages.isEmpty()) {
+            return Result.fail(String.join("，", errorMessages));
+        }
+
+        // 4. 没有可删除的数据
+        if (allowDeleteIds.isEmpty()) {
+            return Result.fail("未选择可删除的角色");
+        }
+
+        // ================= 正式删除 =================
+        for (Long roleId : allowDeleteIds) {
+            // 查询该角色下的所有用户 → 踢下线（清空token+缓存）
+            List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
+            batchKickOffline(userIds);
+            // 删除关联权限
+            rolePermissionMapper.deleteByRoleId(roleId);
+            // 4. 删除角色（用 this 调用父类方法，完全正确）
+            this.removeById(roleId);
+        }
+
+        // 5. 批量删除角色
+        this.removeByIds(allowDeleteIds);
+
+        // 6. 返回成功
+        return Result.success();
+    }
+
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 事务
+    public Result<Void> updateByRoleId(Long id, Integer status) {
+        String msg = null;
+
+        // 1. 查询角色
+        SysRole role = this.getById(id);
+
+        // 2. 校验
+        if (role == null) {
+            msg = "角色不存在";
+        }
+        // 超级管理员不能禁用
+        else if ("SUPER_ADMIN".equals(role.getRoleCode())) {
+            msg = "超级管理员角色不允许修改状态";
+        }
+        // 状态值合法性校验
+        else if (status == null || (status != 0 && status != 1)) {
+            msg = "状态值不正确";
+        }
+
+        // 3. 有错误直接返回
+        if (msg != null) {
+            return Result.fail(msg);
+        }
+
+        // ================ 执行业务 ================
+        // 如果是【禁用】操作 → 踢该角色下所有用户下线
+        if (status == 0) {
+            // 获取角色下所有用户ID
+            List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(id);
+            // 批量清空token + 权限缓存
+            batchKickOffline(userIds);
+        }
+
+        // 更新状态
+        role.setStatus(status);
+        this.updateById(role);
+        // 统一返回
+        return Result.success();
+    }
+
+
 }
 
 

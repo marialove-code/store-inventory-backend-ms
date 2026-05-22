@@ -22,6 +22,17 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
      */
     int batchInsert(@Param("list") List<SysUserRole> list);
 
+    /**
+     * 根据角色ID查询绑定的所有用户ID
+     * @param roleId 角色ID
+     * @return 用户ID集合
+     */
+    List<Long> selectUserIdsByRoleId(@Param("roleId") Long roleId);
+
+
+
+    // 查询某个角色下的用户数量
+    Long countByRoleId(@Param("roleId") Long roleId);
 }
 
 

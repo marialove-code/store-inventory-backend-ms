@@ -112,15 +112,8 @@ public class SysMenuController {
     @DeleteMapping("/{id}")
     @RequiresPerm("system:menu:delete")
     public Result<Void> delete(@PathVariable Long id) {
-        // 校验是否存在子菜单（目录/菜单/按钮）
-        LambdaQueryWrapper<SysPermission> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysPermission::getParentId, id);
-        Long childCount = permissionService.count(wrapper);
-        if (childCount > 0) {
-            return Result.fail("该菜单下存在子菜单或按钮，无法删除");
-        }
-        permissionService.removeById(id);
-        return Result.success();
+        return permissionService.removeMenuById(id);
+
     }
 
     /**
@@ -130,7 +123,6 @@ public class SysMenuController {
     @RequiresPerm("system:menu:changeStatus")
     @OperationLog(title = "修改菜单状态", type = OperationTypeEnum.UPDATE)
     public Result<Void> updateMenuStatus(@PathVariable Long id, @RequestParam Integer status) {
-        permissionService.updateMenuStatus(id, status);
-        return Result.success();
+        return permissionService.updateMenuStatus(id, status);
     }
 }

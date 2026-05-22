@@ -27,6 +27,8 @@ public interface SysPermissionMapper extends BaseMapper<SysPermission> {
      * @return
      */
     List<SysPermission> selectMenuPermissionsByUserId(Long userId);
+
+
 }
 
 
