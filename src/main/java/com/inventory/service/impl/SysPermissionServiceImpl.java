@@ -72,6 +72,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
                     vo.setPermCode(p.getPermCode());         // 权限标识（你表是 perms 字段）
                     vo.setSort(p.getSort());
                     vo.setStatus(p.getStatus());  // 状态
+                    vo.setCreateTime(p.getCreateTime());  //创建时间
+                    vo.setUpdateTime(p.getUpdateTime());  //更新时间
                     return vo;
                 })
                 .collect(Collectors.toList());
