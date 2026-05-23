@@ -68,11 +68,7 @@ logging:
 
 # ====================== 自定义应用配置 ======================
 app:
-  # 跨域配置
   cors:
-    # 允许访问的前端地址
-    allowed-origins: http://120.53.88.204
-  # 文件上传配置
+    allowed-origins: http://localhost:5173
   upload:
-    # 头像上传存储路径（服务器本地目录）
-    avatar-path: /opt/upload/avatar/
+    avatar-path: file:E:/Image/upload/avatar/

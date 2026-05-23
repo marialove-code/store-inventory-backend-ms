@@ -1,7 +1,9 @@
 package com.inventory.entity.menu;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -67,4 +69,23 @@ public class MenuVO {
      * 子菜单列表（递归树形结构）
      */
     private List<MenuVO> children;
+
+
+    /**
+     * 创建时间
+     */
+    @JsonFormat(
+            pattern = "yyyy-MM-dd HH:mm:ss",
+            timezone = "GMT+8"
+    )
+    private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    @JsonFormat(
+            pattern = "yyyy-MM-dd HH:mm:ss",
+            timezone = "GMT+8"
+    )
+    private LocalDateTime updateTime;
 }
