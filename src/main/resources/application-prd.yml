@@ -1,34 +1,78 @@
+# ====================== 服务端配置 ======================
 server:
+  # 后端服务端口
   port: 8080
   servlet:
+    # 接口统一前缀 /api
     context-path: /api
 
+# ====================== Spring 核心配置 ======================
 spring:
+  # Redis 缓存配置
   data:
     redis:
-      # ✅ 本地访问，速度最快，最安全
+      # Redis 地址（本地）
       host: 127.0.0.1
+      # Redis 端口
       port: 6379
-      password: "Maria%@)1314"
+      # Redis 密码（从环境变量读取，不暴露明文）
+      password: ${REDIS_PWD}
+      # 使用的 Redis 数据库索引
       database: 1
+      # 连接超时时间
+      timeout: 3000ms
+      # 连接池配置（Lettuce）
+      lettuce:
+        pool:
+          # 最大连接数
+          max-active: 20
+          # 最大空闲连接
+          max-idle: 10
+          # 最小空闲连接
+          min-idle: 2
+          # 最大等待时间
+          max-wait: 3000ms
+      # 关闭超时时间
+      shutdown-timeout: 100ms
+      # 关闭 SSL（本地环境不需要）
+      ssl:
+        enabled: false
+      # Redis Key 统一前缀
+      key-prefix: "inventory:"
+      # 关闭事务支持
+      enable-transaction-support: false
+
+  # 文件上传配置
   servlet:
     multipart:
-      max-file-size: 10MB       # 单个文件最大 10MB
-      max-request-size: 10MB    # 整个请求最大 10MB
+      # 单个文件最大大小
+      max-file-size: 10MB
+      # 单次请求最大大小
+      max-request-size: 10MB
+
+  # 数据库配置（PostgreSQL）
   datasource:
     driver-class-name: org.postgresql.Driver
-    # ✅ 数据库必须本地访问
+    # 本地数据库连接地址
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store
+    # 数据库用户名
     username: inventory_user
-    password: SJNreZr6rxyT
+    # 数据库密码（从环境变量读取，不暴露明文）
+    password: ${DB_PWD}
 
+# ====================== 日志配置 ======================
 logging:
   level:
+    # 打印 MyBatis SQL 日志
     com.inventory.mapper: debug
 
+# ====================== 自定义应用配置 ======================
 app:
+  # 跨域配置
   cors:
-    # ✅ 前端访问地址
+    # 允许访问的前端地址
     allowed-origins: http://120.53.88.204
+  # 文件上传配置
   upload:
+    # 头像上传存储路径（服务器本地目录）
     avatar-path: /opt/upload/avatar/
