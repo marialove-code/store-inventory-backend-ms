@@ -10,4 +10,6 @@ public class LoginTokenVO {
     private String accessToken;
     private String refreshToken;
     private SysUserSimpleVO user;
+
+
 }

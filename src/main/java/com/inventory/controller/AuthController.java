@@ -9,6 +9,7 @@ import com.inventory.entity.SysUserRegisterDTO;
 import com.inventory.entity.SysUserSimpleVO;
 import com.inventory.entity.login.LoginTokenVO;
 import com.inventory.service.auth.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,9 +41,9 @@ public class AuthController {
     @RateLimit(limit = 3, period = 60, msg = "登录请求频繁")
     @OperationLog(title = "用户登录", type = OperationTypeEnum.LOGIN)
     @PostMapping("/login")
-    public Result<LoginTokenVO> login(@RequestBody SysUserLoginDTO dto) {
+    public Result<LoginTokenVO> login(@RequestBody SysUserLoginDTO dto, HttpServletRequest request) {
         System.out.println("频繁调用");
-        return Result.success(authService.login(dto));
+        return Result.success(authService.login(dto,request));
     }
 
     /**

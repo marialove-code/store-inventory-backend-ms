@@ -3,7 +3,9 @@ package com.inventory.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -22,10 +24,15 @@ public class RedisConfig {
         // 1. Key 用 String 序列化
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
-        // 2. 用 GenericJackson2JsonRedisSerializer 替代弃用的 Jackson2JsonRedisSerializer
+        // 2. 用 GenericJackson2JsonRedisSerializer
         ObjectMapper om = new ObjectMapper();
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        // 用推荐的方式激活类型信息，避免弃用警告
+
+        // ====================== 【只加这两行！】 ======================
+        om.registerModule(new JavaTimeModule()); // 支持 Java8 时间类型
+        om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 时间变成正常格式，不是时间戳
+        // ===============================================================
+
         om.activateDefaultTyping(
                 LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.NON_FINAL

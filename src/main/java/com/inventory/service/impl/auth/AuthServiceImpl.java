@@ -2,6 +2,8 @@ package com.inventory.service.impl.auth;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.extra.servlet.JakartaServletUtil;
+import cn.hutool.extra.servlet.ServletUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.inventory.common.exception.BusinessException;
@@ -18,15 +20,15 @@ import com.inventory.service.SysRoleService;
 import com.inventory.service.SysUserRoleService;
 import com.inventory.service.SysUserService;
 import com.inventory.service.auth.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -96,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
 
     // ========================== 登录（你原有代码） ==========================
     @Override
-    public LoginTokenVO login(SysUserLoginDTO dto) {
+    public LoginTokenVO login(SysUserLoginDTO dto, HttpServletRequest request) {
         // ====================== 1. 查询用户（未删除 + 已启用） ======================
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUser::getUserName, dto.getUserName());
@@ -148,6 +150,30 @@ public class AuthServiceImpl implements AuthService {
         loginUser.setRoles(roles);
         loginUser.setPermissions(permissions);
         loginUser.setAdmin(isSuperAdmin);
+
+        // ========================== 【修改完成 无报错 直接用】 ==========================
+        // 获取 IP（原生方法，不依赖任何工具类）
+        String ip = request.getRemoteAddr();
+
+        // 获取 User-Agent
+        String userAgent = request.getHeader("User-Agent");
+
+        // 使用你当前版本 Hutool 5.8.27 正确解析（不爆红、不报错）
+        cn.hutool.http.useragent.UserAgent ua = cn.hutool.http.useragent.UserAgentUtil.parse(userAgent);
+        String browser = ua.getBrowser().getName();
+        String os = ua.getOs().getName();
+
+        // 时间
+        LocalDateTime loginTime = LocalDateTime.now();
+        LocalDateTime expireTime = loginTime.plusMinutes(accessExpire);
+
+        // 设置到登录用户信息里
+        loginUser.setIpaddr(ip);
+        loginUser.setBrowser(browser);
+        loginUser.setOs(os);
+        loginUser.setLoginTime(loginTime);
+        loginUser.setExpireTime(expireTime);
+        // ========================== 【修改结束】 ==========================
 
         // ====================== 7. Redis 存储 AccessToken 登录态（多设备支持） ======================
         String redisAccessKey = "user:token:" + user.getId() + ":access:" + accessToken;

@@ -3,6 +3,7 @@ package com.inventory.entity.login;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -44,4 +45,10 @@ public class LoginUserVO implements Serializable {
      * 是否超级管理员
      */
     private Boolean admin;
+
+    private String ipaddr;        // 登录IP
+    private String browser;       // 浏览器
+    private String os;            // 操作系统
+    private LocalDateTime loginTime;  // 登录时间
+    private LocalDateTime expireTime; // 过期时间
 }
