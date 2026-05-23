@@ -5,21 +5,21 @@ server:
 spring:
   data:
     redis:
-      host: 192.168.1.100
+      host: 120.53.88.204
       port: 6379
-      password: "你的生产密码"
+      password: "Maria%@)1314"
       database: 1
       connect-timeout: 10s
       lettuce:
         pool:
-          max-active: 16
-          max-idle: 16
-          min-idle: 2
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
           max-wait: -1ms
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://127.0.0.1:5432/inventory_store
+    url: jdbc:postgresql://120.53.88.204:5432/inventory_store
     username: inventory_user
     password: SJNreZr6rxyT
     hikari:
