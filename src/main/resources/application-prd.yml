@@ -1,44 +1,34 @@
 server:
   port: 8080
   servlet:
-    context-path: /api  # 全局接口前缀
+    context-path: /api
+
 spring:
   data:
     redis:
-      host: 120.53.88.204
+      # ✅ 本地访问，速度最快，最安全
+      host: 127.0.0.1
       port: 6379
       password: "Maria%@)1314"
       database: 1
-      connect-timeout: 10s
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
-
+  servlet:
+    multipart:
+      max-file-size: 10MB       # 单个文件最大 10MB
+      max-request-size: 10MB    # 整个请求最大 10MB
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://120.53.88.204:5432/inventory_store
+    # ✅ 数据库必须本地访问
+    url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user
     password: SJNreZr6rxyT
-    hikari:
-      pool-name: pgsql-pool
-      minimum-idle: 2
-      maximum-pool-size: 16
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
 
-# 线上也打印 SQL，方便排错（你要求的）
 logging:
   level:
     com.inventory.mapper: debug
-    org.mybatis: debug
-    org.springframework.jdbc: debug
-# application-prd.yml（生产环境）
+
 app:
   cors:
+    # ✅ 前端访问地址
     allowed-origins: http://120.53.88.204
   upload:
-    avatar-path: file:/opt/upload/avatar/
+    avatar-path: /opt/upload/avatar/
