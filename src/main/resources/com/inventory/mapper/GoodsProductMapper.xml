@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.inventory.mapper.GoodsProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.inventory.entity.goods.GoodsProduct">
+            <id property="id" column="id" />
+            <result property="productName" column="product_name" />
+            <result property="productCode" column="product_code" />
+            <result property="specModel" column="spec_model" />
+            <result property="unit" column="unit" />
+            <result property="categoryId" column="category_id" />
+            <result property="categoryName" column="category_name" />
+            <result property="brandId" column="brand_id" />
+            <result property="brandName" column="brand_name" />
+            <result property="supplierName" column="supplier_name" />
+            <result property="manufacturer" column="manufacturer" />
+            <result property="costPrice" column="cost_price" />
+            <result property="salePrice" column="sale_price" />
+            <result property="stock" column="stock" />
+            <result property="stockWarning" column="stock_warning" />
+            <result property="showcasePosition" column="showcase_position" />
+            <result property="imageUrl" column="image_url" />
+            <result property="shelfStatus" column="shelf_status" />
+            <result property="sort" column="sort" />
+            <result property="remark" column="remark" />
+            <result property="isDeleted" column="is_deleted" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,product_name,product_code,spec_model,unit,category_id,
+        category_name,brand_id,brand_name,supplier_name,manufacturer,
+        cost_price,sale_price,stock,stock_warning,showcase_position,
+        image_url,shelf_status,sort,remark,is_deleted,
+        create_time,update_time
+    </sql>
+</mapper>
