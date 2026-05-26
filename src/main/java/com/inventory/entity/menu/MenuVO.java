@@ -16,7 +16,7 @@ public class MenuVO {
     /**
      * 菜单/权限ID
      */
-    private Long id;
+    private String id;
 
     /**
      * 父菜单ID（顶级菜单为0）

@@ -13,7 +13,7 @@ public class SysUserSimpleVO {
      * 用户ID
      */
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long id;
+    private String id;
 
     /**
      * 登录用户名

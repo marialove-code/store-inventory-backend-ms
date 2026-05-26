@@ -89,7 +89,7 @@ public class PermissionController {
      */
     @GetMapping("/{id}")
     @RequiresPerm("system:permission:list")
-    public Result<SysPermission> getById(@PathVariable Long id) {
+    public Result<SysPermission> getById(@PathVariable String id) {
         return Result.success(sysPermissionService.getById(id));
     }
 
@@ -109,10 +109,10 @@ public class PermissionController {
     @PutMapping("/{id}")
     @RequiresPerm("system:permission:edit")
     public Result<Void> update(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody SysPermission permission
     ) {
-        permission.setId(id);
+        permission.setId(Long.valueOf(id));
         sysPermissionService.updateById(permission);
         return Result.success();
     }
@@ -122,7 +122,7 @@ public class PermissionController {
      */
     @DeleteMapping("/{id}")
     @RequiresPerm("system:permission:delete")
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable String id) {
         return sysPermissionService.removePermissionById(id);
 
     }
@@ -134,7 +134,7 @@ public class PermissionController {
     @PutMapping("/{id}/status")
     @RequiresPerm("system:permission:changeStatus")
     public Result<Void> updateStatus(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestParam Integer status
     ) {
 

@@ -66,21 +66,21 @@ public interface SysPermissionService extends IService<SysPermission> {
      * @param id 菜单ID
      * @param status 状态 0-禁用 1-正常
      */
-    Result<Void> updateMenuStatus(Long id, Integer status);
+    Result<Void> updateMenuStatus(String id, Integer status);
 
     /**
      * 删除菜单（级联删除子菜单）
      * @param id 菜单ID
      * @return 操作结果
      */
-    Result<Void> removeMenuById(Long id);
+    Result<Void> removeMenuById(String id);
 
     /**
      * 删除权限标识（清角色权限关联 + 清缓存）
      * @param id 权限ID
      * @return 操作结果
      */
-    Result<Void> removePermissionById(Long id);
+    Result<Void> removePermissionById(String id);
 
     /**
      * 修改权限状态（禁用/启用）
@@ -88,5 +88,5 @@ public interface SysPermissionService extends IService<SysPermission> {
      * @param status 状态 0禁用 1启用
      * @return 操作结果
      */
-    Result<Void> updatePermissionStatus(Long id, Integer status);
+    Result<Void> updatePermissionStatus(String id, Integer status);
 }

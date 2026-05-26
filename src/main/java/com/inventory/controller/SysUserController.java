@@ -44,13 +44,13 @@ public class SysUserController {
     }
 
     @GetMapping("/user/{id}")
-    public Result<SysUser> getUserById(@PathVariable Long id) {
+    public Result<SysUser> getUserById(@PathVariable String id) {
         return Result.success(sysUserService.getUserById(id));
     }
 
     @PutMapping("/user/{id}")
     @OperationLog(title = "修改用户", type = OperationTypeEnum.UPDATE)
-    public Result<Void> updateUser(@PathVariable Long id, @RequestBody SysUser dto) {
+    public Result<Void> updateUser(@PathVariable String id, @RequestBody SysUser dto) {
         sysUserService.updateUser(id, dto);
         return Result.success();
     }
@@ -58,14 +58,14 @@ public class SysUserController {
     @PutMapping("/{id}/status")
     @RequiresPerm("system:user:changeStatus")
     @OperationLog(title = "修改状态", type = OperationTypeEnum.UPDATE)
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateStatus(@PathVariable String id, @RequestParam Integer status) {
         return sysUserService.updateUserStatus(id, status);
     }
 
     @PutMapping("/{id}/resetPassword")
     @RequiresPerm("system:user:resetPwd")
     @OperationLog(title = "重置密码", type = OperationTypeEnum.UPDATE)
-    public Result<Void> resetPwd(@PathVariable Long id) {
+    public Result<Void> resetPwd(@PathVariable String id) {
         sysUserService.resetPassword(id);
         return Result.success();
     }
@@ -73,7 +73,7 @@ public class SysUserController {
     @DeleteMapping("/{id}")
     @RequiresPerm("system:user:delete")
     @OperationLog(title = "删除用户", type = OperationTypeEnum.DELETE)
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable String id) {
         return sysUserService.removeUserById(id);
     }
 

@@ -189,7 +189,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
 
     @Override
     @Transactional(rollbackFor = Exception.class)  // 👈 加这个
-    public Result<Void> removeRoleById(Long id) {
+    public Result<Void> removeRoleById(String id) {
         String msg = null;
         SysRole role = this.getById(id);
 
@@ -197,7 +197,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
             msg = "角色不存在";
         } else if ("SUPER_ADMIN".equals(role.getRoleCode())) {
             msg = "超级管理员角色不允许删除";
-        } else if (userRoleMapper.countByRoleId(id) > 0) {
+        } else if (userRoleMapper.countByRoleId(Long.valueOf(id)) > 0) {
             msg = "该角色下存在关联用户，无法删除";
         }
 
@@ -206,10 +206,10 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
         }
 
         // 查询关联用户并下线
-        List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(id);
+        List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(Long.valueOf(id));
         batchKickOffline(userIds);
         // 删除关联数据与角色
-        rolePermissionMapper.deleteByRoleId(id);
+        rolePermissionMapper.deleteByRoleId(Long.valueOf(id));
         this.removeById(id);
 
         return Result.success();
@@ -295,7 +295,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 事务
-    public Result<Void> updateByRoleId(Long id, Integer status) {
+    public Result<Void> updateByRoleId(String id, Integer status) {
         String msg = null;
 
         // 1. 查询角色
@@ -323,7 +323,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
         // 如果是【禁用】操作 → 踢该角色下所有用户下线
         if (status == 0) {
             // 获取角色下所有用户ID
-            List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(id);
+            List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(Long.valueOf(id));
             // 批量清空token + 权限缓存
             batchKickOffline(userIds);
         }

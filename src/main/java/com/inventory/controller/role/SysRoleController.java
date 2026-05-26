@@ -66,7 +66,7 @@ public class SysRoleController {
      */
     @GetMapping("/{id}")
     @RequiresPerm("system:role:list")
-    public Result<SysRole> getById(@PathVariable Long id) {
+    public Result<SysRole> getById(@PathVariable String id) {
         return Result.success(sysRoleService.getById(id));
     }
 
@@ -86,10 +86,10 @@ public class SysRoleController {
     @PutMapping("/{id}")
     @RequiresPerm("system:role:edit")
     public Result<Void> update(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody SysRole role
     ) {
-        role.setId(id);
+        role.setId(Long.valueOf(id));
         sysRoleService.updateById(role);
         return Result.success();
     }
@@ -99,7 +99,7 @@ public class SysRoleController {
      */
     @DeleteMapping("/{id}")
     @RequiresPerm("system:role:delete")
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable String id) {
         return sysRoleService.removeRoleById(id);
     }
 
@@ -118,7 +118,7 @@ public class SysRoleController {
     @PutMapping("/{id}/status")
     @RequiresPerm("system:role:status")
     public Result<Void> updateStatus(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestParam Integer status
     ) {
 
