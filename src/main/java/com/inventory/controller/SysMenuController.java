@@ -95,13 +95,13 @@ public class SysMenuController {
      */
     @PutMapping("/{id}")
     @RequiresPerm("system:menu:edit")
-    public Result<Void> update(@PathVariable Long id, @RequestBody SysPermission menu) {
+    public Result<Void> update(@PathVariable String id, @RequestBody SysPermission menu) {
         // 强制校验：只允许目录或菜单类型
         String type = menu.getPermType();
         if (!"M".equals(type) && !"C".equals(type)) {
             return Result.fail("菜单类型只能为目录或菜单");
         }
-        menu.setId(id);
+        menu.setId(Long.valueOf(id));
         permissionService.updateById(menu);
         return Result.success();
     }
@@ -111,7 +111,7 @@ public class SysMenuController {
      */
     @DeleteMapping("/{id}")
     @RequiresPerm("system:menu:delete")
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable String id) {
         return permissionService.removeMenuById(id);
 
     }
@@ -122,7 +122,7 @@ public class SysMenuController {
     @PutMapping("/{id}/status")
     @RequiresPerm("system:menu:changeStatus")
     @OperationLog(title = "修改菜单状态", type = OperationTypeEnum.UPDATE)
-    public Result<Void> updateMenuStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateMenuStatus(@PathVariable String id, @RequestParam Integer status) {
         return permissionService.updateMenuStatus(id, status);
     }
 }

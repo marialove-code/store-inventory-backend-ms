@@ -96,7 +96,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public SysUser getUserById(Long id) {
+    public SysUser getUserById(String id) {
         SysUser user = this.getById(id);
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
@@ -107,7 +107,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public void updateUser(Long id, SysUser dto) {
+    public void updateUser(String id, SysUser dto) {
         SysUser exist = this.getById(id);
         if (exist == null || exist.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
@@ -150,7 +150,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> updateUserStatus(Long id, Integer status) {
+    public Result<Void> updateUserStatus(String id, Integer status) {
 
         // 1. 校验用户是否存在
         SysUser user = this.getById(id);
@@ -170,7 +170,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
         // 4. 如果是禁用操作 → 立即强制下线
         if (status == 0) {
-            userSessionService.kickUserOffline(id);
+            userSessionService.kickUserOffline(Long.valueOf(id));
         }
 
         // 5. 更新用户状态
@@ -183,7 +183,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
 
     @Override
-    public void resetPassword(Long id) {
+    public void resetPassword(String id) {
         SysUser user = this.getById(id);
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
@@ -194,7 +194,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public void deleteUser(Long id) {
+    public void deleteUser(String id) {
         SysUser user = this.getById(id);
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
@@ -253,7 +253,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> removeUserById(Long id) {
+    public Result<Void> removeUserById(String id) {
 
         // 1. 校验：用户是否存在
         SysUser user = this.getById(id);
@@ -267,7 +267,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
 
         // 3. 强制用户下线：清空双Token + 权限缓存
-        userSessionService.kickUserOffline(id);
+        userSessionService.kickUserOffline(Long.valueOf(id));
 
         // 4. 删除用户与角色的关联数据（sys_user_role）
         sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()

@@ -62,7 +62,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         List<MenuVO> menuList = permissions.stream()
                 .map(p -> {
                     MenuVO vo = new MenuVO();
-                    vo.setId(p.getId());
+                    vo.setId(String.valueOf(p.getId()));
                     vo.setParentId(p.getParentId());
                     vo.setPermName(p.getPermName());   // 菜单名
                     vo.setPath(p.getPath());           // 路由
@@ -161,7 +161,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> updateMenuStatus(Long id, Integer status) {
+    public Result<Void> updateMenuStatus(String id, Integer status) {
         // 1. 校验菜单是否存在
         SysPermission menu = this.getById(id);
         if (menu == null) {
@@ -175,7 +175,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         // 3. 递归获取当前菜单及其所有子菜单ID
         List<Long> allMenuIds = new ArrayList<>();
-        collectChildMenuIds(id, allMenuIds);
+        collectChildMenuIds(Long.valueOf(id), allMenuIds);
 
         // 4. 批量更新所有菜单状态
         List<SysPermission> menuList = allMenuIds.stream()
@@ -212,7 +212,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> removeMenuById(Long id) {
+    public Result<Void> removeMenuById(String id) {
         // 1. 校验菜单是否存在
         SysPermission menu = this.getById(id);
         if (menu == null) {
@@ -221,7 +221,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         // 2. 递归删除所有子菜单（含自身）
         List<Long> allMenuIds = new ArrayList<>();
-        collectChildMenuIds(id, allMenuIds);
+        collectChildMenuIds(Long.valueOf(id), allMenuIds);
 
         // 3. 清除角色-菜单关联
         LambdaQueryWrapper<SysRolePermission> roleMenuWrapper = new LambdaQueryWrapper<>();
@@ -257,7 +257,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> removePermissionById(Long id) {
+    public Result<Void> removePermissionById(String id) {
         // 1. 校验权限是否存在
         SysPermission permission = this.getById(id);
         if (permission == null) {
@@ -273,7 +273,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         this.removeById(id);
 
         // 4. 清空所有关联角色下用户的权限缓存
-        List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByPermId(id);
+        List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByPermId(Long.valueOf(id));
         for (Long roleId : roleIds) {
             List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
             for (Long userId : userIds) {
@@ -293,7 +293,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> updatePermissionStatus(Long id, Integer status) {
+    public Result<Void> updatePermissionStatus(String id, Integer status) {
         // 1. 校验权限是否存在
         SysPermission permission = this.getById(id);
         if (permission == null) {
@@ -311,7 +311,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
         // 4. 禁用时清空权限缓存
         if (status == 0) {
-            List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByPermId(id);
+            List<Long> roleIds = sysRolePermissionMapper.selectRoleIdsByPermId(Long.valueOf(id));
             for (Long roleId : roleIds) {
                 List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(roleId);
                 for (Long userId : userIds) {
@@ -363,7 +363,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         List<MenuVO> menuList = permissions.stream()
                 .map(p -> {
                     MenuVO vo = new MenuVO();
-                    vo.setId(p.getId());
+                    vo.setId(String.valueOf(p.getId()));
                     vo.setParentId(p.getParentId());
                     vo.setPermName(p.getPermName());
                     vo.setPath(p.getPath());

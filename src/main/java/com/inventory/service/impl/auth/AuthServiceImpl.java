@@ -299,7 +299,7 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtUtil.createAccessToken(userId, username);
 
         // ====================== 6. 校验用户状态是否正常 ======================
-        SysUser user = sysUserService.getUserById(userId);
+        SysUser user = sysUserService.getUserById(String.valueOf(userId));
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }

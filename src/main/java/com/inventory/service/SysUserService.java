@@ -25,12 +25,12 @@ public interface SysUserService extends IService<SysUser>  {
     /**
      * 根据ID获取用户详情
      */
-    SysUser getUserById(Long id);
+    SysUser getUserById(String id);
 
     /**
      * 修改用户信息
      */
-    void updateUser(Long id, SysUser dto);
+    void updateUser(String id, SysUser dto);
 
     /**
      * 修改用户状态
@@ -38,16 +38,16 @@ public interface SysUserService extends IService<SysUser>  {
      * @param status 状态 0禁用 1启用
      * @return 统一返回结果
      */
-    Result<Void> updateUserStatus(Long id, Integer status);
+    Result<Void> updateUserStatus(String id, Integer status);
     /**
      * 重置用户密码为123456
      */
-    void resetPassword(Long id);
+    void resetPassword(String id);
 
     /**
      * 逻辑删除单个用户
      */
-    void deleteUser(Long id);
+    void deleteUser(String id);
 
     /**
      * 批量逻辑删除用户
@@ -78,7 +78,7 @@ public interface SysUserService extends IService<SysUser>  {
      * @param id 用户ID
      * @return 统一返回结果
      */
-    Result<Void> removeUserById(Long id);
+    Result<Void> removeUserById(String id);
 
 
     /**

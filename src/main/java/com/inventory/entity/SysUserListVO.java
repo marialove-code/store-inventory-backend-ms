@@ -17,7 +17,7 @@ public class SysUserListVO {
      * 雪花算法ID
      */
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long id;
+    private String id;
 
     /**
      * 登录用户名

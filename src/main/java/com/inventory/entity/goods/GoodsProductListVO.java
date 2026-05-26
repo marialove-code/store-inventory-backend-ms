@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class GoodsProductListVO {
 
     /** 主键ID */
-    private Long id;
+    private String id;
 
     /** 商品主图 */
     private String mainImage;

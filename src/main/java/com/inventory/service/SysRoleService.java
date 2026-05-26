@@ -60,7 +60,7 @@ public interface SysRoleService extends IService<SysRole> {
      * 删除角色，附带业务校验
      * @param id 角色ID
      */
-    Result<Void> removeRoleById(Long id);
+    Result<Void> removeRoleById(String id);
     /**
      * 批量删除角色，附带业务校验
      * @param ids 角色ID
@@ -70,5 +70,5 @@ public interface SysRoleService extends IService<SysRole> {
     /**
      * 更新角色状态（禁用/启用）
      */
-    Result<Void> updateByRoleId(Long id, Integer status);
+    Result<Void> updateByRoleId(String id, Integer status);
 }
