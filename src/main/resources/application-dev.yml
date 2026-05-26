@@ -72,3 +72,11 @@ app:
     allowed-origins: http://localhost:5173
   upload:
     avatar-path: file:E:/Image/upload/avatar/
+    # 商品图片上传存储路径（服务器本地目录） → 【新增】
+    product-image-path: file:E:/Image/upload/head/
+    # 商品图片访问前缀 → 【新增】
+    product-image-prefix: http://localhost:5173/uploads/product/
+    # 品牌图片上传存储路径（服务器本地目录） → 【新增】
+    brand-image-path: file:E:/Image/upload/brand/
+    # 品牌图片访问前缀
+    brand-image-prefix: http://localhost:5173/uploads/brand/

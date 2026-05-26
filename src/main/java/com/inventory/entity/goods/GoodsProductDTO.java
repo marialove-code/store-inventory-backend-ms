@@ -1,34 +1,30 @@
 package com.inventory.entity.goods;
 
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Date;
 import lombok.Data;
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * 商品信息表
- * @TableName goods_product
+ * 商品 DTO
+ * 完全按照你文字版字段生成，无多余字段
  */
-@TableName(value ="goods_product")
 @Data
-public class GoodsProduct {
-    /**
-     * 雪花算法ID
-     */
-    @TableId
-    private Long id;
+public class GoodsProductDTO {
 
     /**
-     * 主图URL
+     * 雪花ID（新增不传，编辑必传）
+     */
+    private String id;
+
+    /**
+     * 商品主图
      */
     private String mainImage;
 
     /**
-     * 商品图片列表JSON数组
+     * 商品多图列表
      */
-    private String images;
+    private List<String> images;
 
     /**
      * 商品名称
@@ -48,7 +44,7 @@ public class GoodsProduct {
     /**
      * 分类ID
      */
-    private Long categoryId;
+    private String categoryId;
 
     /**
      * 分类名称
@@ -58,7 +54,7 @@ public class GoodsProduct {
     /**
      * 品牌ID
      */
-    private Long brandId;
+    private String brandId;
 
     /**
      * 品牌名称
@@ -71,7 +67,7 @@ public class GoodsProduct {
     private String supplierName;
 
     /**
-     * 厂家
+     * 生产厂家
      */
     private String manufacturer;
 
@@ -81,12 +77,12 @@ public class GoodsProduct {
     private String unit;
 
     /**
-     * 进货价/成本价
+     * 成本价/进货价
      */
     private BigDecimal costPrice;
 
     /**
-     * 售价(标价)
+     * 售价（必填）
      */
     private BigDecimal salePrice;
 
@@ -116,22 +112,7 @@ public class GoodsProduct {
     private Integer shelfStatus;
 
     /**
-     * 排序号(数字越小越靠前)
+     * 排序号
      */
     private Integer sort;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createTime;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updateTime;
-
-    /**
-     * 逻辑删除 0=正常 1=已删除
-     */
-    private Integer isDeleted;
 }

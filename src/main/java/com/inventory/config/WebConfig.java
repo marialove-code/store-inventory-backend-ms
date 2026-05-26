@@ -34,6 +34,12 @@ public class WebConfig implements WebMvcConfigurer {
     private String avatarPath;
 
     /**
+     * 商品图片上传路径 → 【新增】
+     */
+    @Value("${app.upload.product-image-path}")
+    private String productImagePath;
+
+    /**
      * 跨域配置
      */
     @Override
@@ -53,8 +59,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 映射 /upload/avatar/ 路径到配置文件指定的文件夹
+        // 1. 头像上传映射（你原来的，不动）
         registry.addResourceHandler("/upload/avatar/**")
                 .addResourceLocations(avatarPath);
+
+        // 2. 商品图片映射 → 【新增，完美兼容】
+        registry.addResourceHandler("/uploads/product/**")
+                .addResourceLocations("file:" + productImagePath);
     }
 }

@@ -1,4 +1,4 @@
-package com.inventory.controller.OnlineUser;
+package com.inventory.controller.onlineUser;
 
 import com.inventory.annotation.RequiresPerm;
 import com.inventory.common.result.Result;
@@ -9,8 +9,6 @@ import com.inventory.service.online.OnlineUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
-import java.util.Set;
 
 /**
  * 在线用户监控控制器

@@ -6,35 +6,36 @@
 
     <resultMap id="BaseResultMap" type="com.inventory.entity.goods.GoodsProduct">
             <id property="id" column="id" />
+            <result property="mainImage" column="main_image" />
+            <result property="images" column="images" />
             <result property="productName" column="product_name" />
-            <result property="productCode" column="product_code" />
             <result property="specModel" column="spec_model" />
-            <result property="unit" column="unit" />
+            <result property="productCode" column="product_code" />
             <result property="categoryId" column="category_id" />
             <result property="categoryName" column="category_name" />
             <result property="brandId" column="brand_id" />
             <result property="brandName" column="brand_name" />
             <result property="supplierName" column="supplier_name" />
             <result property="manufacturer" column="manufacturer" />
+            <result property="unit" column="unit" />
             <result property="costPrice" column="cost_price" />
             <result property="salePrice" column="sale_price" />
+            <result property="actualSalePrice" column="actual_sale_price" />
             <result property="stock" column="stock" />
-            <result property="stockWarning" column="stock_warning" />
+            <result property="stockWarn" column="stock_warn" />
             <result property="showcasePosition" column="showcase_position" />
-            <result property="imageUrl" column="image_url" />
             <result property="shelfStatus" column="shelf_status" />
             <result property="sort" column="sort" />
-            <result property="remark" column="remark" />
-            <result property="isDeleted" column="is_deleted" />
             <result property="createTime" column="create_time" />
             <result property="updateTime" column="update_time" />
+            <result property="isDeleted" column="is_deleted" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,product_name,product_code,spec_model,unit,category_id,
-        category_name,brand_id,brand_name,supplier_name,manufacturer,
-        cost_price,sale_price,stock,stock_warning,showcase_position,
-        image_url,shelf_status,sort,remark,is_deleted,
-        create_time,update_time
+        id,main_image,images,product_name,spec_model,product_code,
+        category_id,category_name,brand_id,brand_name,supplier_name,
+        manufacturer,unit,cost_price,sale_price,actual_sale_price,
+        stock,stock_warn,showcase_position,shelf_status,sort,
+        create_time,update_time,is_deleted
     </sql>
 </mapper>
