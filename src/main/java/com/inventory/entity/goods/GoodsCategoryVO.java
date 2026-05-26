@@ -1,23 +1,20 @@
 package com.inventory.entity.goods;
 
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.time.LocalDateTime;
-import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * 商品分类表
- * @TableName goods_category
+ * 商品分类 VO
+ * 用于返回给前端展示（列表 + 树结构）
  */
-@TableName(value ="goods_category")
 @Data
-public class GoodsCategory {
+public class GoodsCategoryVO {
+
     /**
-     * 雪花ID
+     * 分类ID
      */
-    @TableId
     private Long id;
 
     /**
@@ -31,12 +28,12 @@ public class GoodsCategory {
     private String categoryName;
 
     /**
-     * 排序号
+     * 排序
      */
     private Integer sort;
 
     /**
-     * 状态 1=启用 0=禁用
+     * 状态 1启用 0禁用
      */
     private Integer status;
 
@@ -48,15 +45,17 @@ public class GoodsCategory {
     /**
      * 创建时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
 
     /**
      * 更新时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
 
     /**
-     * 逻辑删除 0=未删 1=已删
+     * 子分类（树结构专用）
      */
-    private Integer isDeleted;
+    private List<GoodsCategoryVO> children;
 }

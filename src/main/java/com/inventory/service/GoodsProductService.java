@@ -1,11 +1,13 @@
 package com.inventory.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.inventory.entity.goods.GoodsProduct;
+import com.inventory.common.result.Result;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.inventory.entity.goods.GoodsProductListVO;
+import com.inventory.entity.goods.GoodsProduct;
+import com.inventory.entity.goods.GoodsProductDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
 * @author 95349
@@ -13,18 +15,47 @@ import java.math.BigDecimal;
 * @createDate 2026-05-25 18:26:40
 */
 public interface GoodsProductService extends IService<GoodsProduct> {
+
     /**
-     * 商品分页条件查询
+     * 分页查询商品列表
      */
-    Page<GoodsProductListVO> pageProduct(
-            String keyword,
-            String categoryId,
-            String brandId,
-            Integer shelfStatus,
-            String productCode,
-            BigDecimal minPrice,
-            BigDecimal maxPrice,
-            Long pageNum,
-            Long pageSize
-    );
+    Result<?> pageProduct(String keyword, String categoryId, String brandId, Integer shelfStatus,
+                          String productCode, BigDecimal minPrice, BigDecimal maxPrice,
+                          Long pageNum, Long pageSize);
+
+    /**
+     * 新增商品
+     */
+    Result<?> addProduct(GoodsProductDTO dto);
+
+    /**
+     * 修改商品
+     */
+    Result<?> updateProduct(String id, GoodsProductDTO dto);
+
+    /**
+     * 删除商品
+     */
+    Result<?> deleteProduct(String id);
+
+    /**
+     * 批量删除
+     */
+    Result<?> batchDeleteProduct(List<String> ids);
+
+    /**
+     * 上下架
+     */
+    Result<?> updateShelfStatus(String id, Integer shelfStatus);
+
+    /**
+     * 批量上下架
+     */
+    Result<?> batchUpdateShelfStatus(List<String> ids, Integer shelfStatus);
+
+    /**
+     * 图片上传
+     */
+    Result<?> uploadImage(MultipartFile file);
+
 }

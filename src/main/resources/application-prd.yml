@@ -76,3 +76,11 @@ app:
   upload:
     # 头像上传存储路径（服务器本地目录）
     avatar-path: /opt/upload/avatar/
+    # 商品图片上传存储路径（服务器本地目录） → 【新增】
+    product-image-path: /opt/upload/product/
+    # 商品图片访问前缀 → 【新增】
+    product-image-prefix: http://120.53.88.204/uploads/product/
+    # 品牌图片上传存储路径（服务器本地目录） → 【新增】
+    brand-image-path: file:E:/Image/upload/brand/
+    # 品牌图片访问前缀
+    brand-image-prefix: http://localhost:5173/uploads/brand/
