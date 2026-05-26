@@ -66,5 +66,9 @@ public class WebConfig implements WebMvcConfigurer {
         // 2. 商品图片映射 → 【新增，完美兼容】
         registry.addResourceHandler("/uploads/product/**")
                 .addResourceLocations("file:" + productImagePath);
+
+        // 3. 品牌图片映射 → 【新增，完美兼容】
+        registry.addResourceHandler("/uploads/brand/**")
+                .addResourceLocations("file:" + productImagePath);
     }
 }
