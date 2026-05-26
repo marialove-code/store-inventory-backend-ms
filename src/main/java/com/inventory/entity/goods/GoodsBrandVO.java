@@ -14,7 +14,7 @@ public class GoodsBrandVO {
     /**
      * 品牌ID
      */
-    private String id;
+    private Long  id;
 
     /**
      * 品牌名称

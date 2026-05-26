@@ -62,7 +62,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         List<MenuVO> menuList = permissions.stream()
                 .map(p -> {
                     MenuVO vo = new MenuVO();
-                    vo.setId(String.valueOf(p.getId()));
+                    vo.setId(p.getId());
                     vo.setParentId(p.getParentId());
                     vo.setPermName(p.getPermName());   // 菜单名
                     vo.setPath(p.getPath());           // 路由
@@ -363,7 +363,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         List<MenuVO> menuList = permissions.stream()
                 .map(p -> {
                     MenuVO vo = new MenuVO();
-                    vo.setId(String.valueOf(p.getId()));
+                    vo.setId(p.getId());
                     vo.setParentId(p.getParentId());
                     vo.setPermName(p.getPermName());
                     vo.setPath(p.getPath());
