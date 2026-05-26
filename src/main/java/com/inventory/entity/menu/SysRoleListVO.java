@@ -13,7 +13,7 @@ public class SysRoleListVO {
     /**
      * 角色主键ID
      */
-    private String id;
+    private Long id;
 
     /**
      * 角色名称

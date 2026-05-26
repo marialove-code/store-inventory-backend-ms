@@ -15,7 +15,7 @@ public class GoodsCategoryVO {
     /**
      * 分类ID
      */
-    private String id;
+    private Long id;
 
     /**
      * 上级分类ID
