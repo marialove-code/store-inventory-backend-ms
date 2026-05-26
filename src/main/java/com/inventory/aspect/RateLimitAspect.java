@@ -1,4 +1,4 @@
-package com.inventory.aop;
+package com.inventory.aspect;
 
 import com.inventory.annotation.RateLimit;
 import com.inventory.common.result.Result;

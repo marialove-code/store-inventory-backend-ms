@@ -1,4 +1,4 @@
-package com.inventory.aop;
+package com.inventory.aspect;
 
 import cn.hutool.json.JSONUtil;
 import com.inventory.annotation.OperationLog;
