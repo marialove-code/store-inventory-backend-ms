@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.inventory.common.exception.BusinessException;
-import com.inventory.common.result.ResultCode;
+import com.inventory.common.response.ResultCode;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;

@@ -1,6 +1,6 @@
 package com.inventory.common.base;
 
-import com.inventory.common.result.Result;
+import com.inventory.common.response.Result;
 
 /**
  * 控制器基类：提供统一返回封装方法。
