@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * @author inventory
  */
 @SpringBootApplication()
-@MapperScan("com.inventory.mapper")
+@MapperScan({"com.inventory.modules.*.*.mapper"})
 @EnableAsync
 public class InventoryApplication {
     public static void main(String[] args) {

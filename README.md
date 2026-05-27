@@ -103,22 +103,237 @@ java -jar target/store-inventory-backend.jar
 ## 目录结构
 ```
 store-inventory-backend/
-├── src/main/java/com/inventory/
-│   ├── InventoryApplication.java    # 启动类
-│   ├── annotation/        # 自定义注解
-│   ├── aop/               # 切面（权限、日志）
-│   ├── common/            # 公共工具、常量、异常
-│   ├── config/            # 配置类（Security、Redis、CORS）
-│   ├── controller/        # API 接口
-│   ├── service/           # 业务逻辑
-│   ├── mapper/            # 数据访问
-│   ├── entity/            # 实体/DTO/VO
-│   ├── filter/            # JWT 过滤器
-│   └── context/           # 用户上下文
-├── src/main/resources/
-│   ├── application.yml
-│   └── application-dev.yml
-└── pom.xml
+└── src/
+    └── main/
+        ├── java/
+        │   └── com/
+        │       └── inventory/
+        │
+        │           ├── InventoryApplication.java
+        │           │   └── SpringBoot 启动类
+        │
+        │           ├── common/                            # 公共基础层（全项目通用）
+        │           │
+        │           │   ├── base/                         # 基础父类
+        │           │   │   ├── BaseController.java       # Controller公共方法
+        │           │   │   └── BaseEntity.java           # 实体公共字段（createTime等）
+        │           │
+        │           │   ├── constants/                    # 全局常量
+        │           │   │   ├── CommonConstants.java
+        │           │   │   ├── PermissionConstants.java
+        │           │   │   └── RedisConstants.java
+        │           │
+        │           │   ├── enums/                        # 全局枚举
+        │           │   │   ├── DeletedFlagEnum.java
+        │           │   │   └── OperationTypeEnum.java
+        │           │
+        │           │   ├── exception/                    # 公共异常
+        │           │   │   └── BusinessException.java
+        │           │
+        │           │   ├── response/                     # 统一响应体
+        │           │   │   ├── Result.java
+        │           │   │   └── ResultCode.java
+        │           │
+        │           │   ├── utils/                        # 通用工具类
+        │           │   │   ├── DateUtils.java
+        │           │   │   ├── DesensitizeUtil.java
+        │           │   │   ├── StringUtils.java
+        │           │   │   └── ValidationUtils.java
+        │           │
+        │           │   └── validator/                    # 自定义参数校验器
+        │           │
+        │
+        │           ├── config/                           # Spring 配置层
+        │           │
+        │           │   ├── jackson/                      # Jackson配置
+        │           │   │   └── JacksonConfig.java
+        │           │
+        │           │   ├── mybatis/                      # MyBatisPlus配置
+        │           │   │   ├── MybatisPlusInterceptorConfiguration.java
+        │           │   │   └── MybatisPlusMetaObjectHandler.java
+        │           │
+        │           │   ├── redis/                        # Redis配置
+        │           │   │   └── RedisConfig.java
+        │           │
+        │           │   ├── security/                     # SpringSecurity配置
+        │           │   │   └── SecurityConfig.java
+        │           │
+        │           │   ├── swagger/                      # Knife4j/Swagger配置
+        │           │   │   └── Knife4jConfiguration.java
+        │           │
+        │           │   └── web/                          # MVC/Web配置
+        │           │       └── WebConfig.java
+        │           │
+        │
+        │           ├── framework/                        # 基础设施层（核心工程化）
+        │           │
+        │           │   ├── log/                          # 日志体系
+        │           │   │
+        │           │   │   ├── annotation/               # 日志注解
+        │           │   │   │   └── OperationLog.java
+        │           │   │
+        │           │   │   └── aspect/                   # 日志切面
+        │           │   │       └── OperationLogAspect.java
+        │           │
+        │           │
+        │           │   ├── redis/                        # Redis基础设施
+        │           │   │   └── RedisUtils.java
+        │           │
+        │           │
+        │           │   ├── security/                     # 安全体系
+        │           │   │
+        │           │   │   ├── context/                  # 登录用户上下文
+        │           │   │   │   └── LoginUserContext.java
+        │           │   │
+        │           │   │   ├── exception/                # 权限异常
+        │           │   │   │   └── PermissionException.java
+        │           │   │
+        │           │   │   ├── filter/                   # JWT过滤器
+        │           │   │   │   └── JwtAuthenticationFilter.java
+        │           │   │
+        │           │   │   ├── jwt/                      # JWT工具
+        │           │   │   │   └── JwtUtil.java
+        │           │   │
+        │           │   │   └── permission/               # 权限体系
+        │           │   │       │
+        │           │   │       ├── annotation/           # 权限注解
+        │           │   │       │   └── RequiresPerm.java
+        │           │   │       │
+        │           │   │       └── aspect/               # 权限校验切面
+        │           │   │           └── PermissionAspect.java
+        │           │
+        │           │
+        │           │   └── web/                          # Web基础设施
+        │           │       │
+        │           │       ├── exception/                # 全局异常处理
+        │           │       │   └── GlobalExceptionHandler.java
+        │           │       │
+        │           │       ├── interceptor/              # MVC拦截器
+        │           │       │   └── LoginInterceptor.java
+        │           │       │
+        │           │       └── ratelimit/                # 接口限流
+        │           │           │
+        │           │           ├── annotation/
+        │           │           │   └── RateLimit.java
+        │           │           │
+        │           │           └── aspect/
+        │           │               └── RateLimitAspect.java
+        │           │
+        │
+        │           ├── modules/                          # 业务模块层（领域层）
+        │           │
+        │           │   ├── auth/                         # 认证模块（登录注册）
+        │           │   │
+        │           │   │   ├── controller/
+        │           │   │   ├── dto/
+        │           │   │   ├── service/
+        │           │   │   │   └── impl/
+        │           │   │   └── vo/
+        │           │
+        │           │
+        │           │   ├── goods/                        # 商品领域
+        │           │   │
+        │           │   │   ├── brand/                    # 商品品牌
+        │           │   │   │   ├── controller/
+        │           │   │   │   ├── convert/
+        │           │   │   │   ├── dto/
+        │           │   │   │   ├── entity/
+        │           │   │   │   ├── mapper/
+        │           │   │   │   ├── service/
+        │           │   │   │   │   └── impl/
+        │           │   │   │   └── vo/
+        │           │   │
+        │           │   │   ├── category/                 # 商品分类
+        │           │   │   │   ├── controller/
+        │           │   │   │   ├── convert/
+        │           │   │   │   ├── dto/
+        │           │   │   │   ├── entity/
+        │           │   │   │   ├── mapper/
+        │           │   │   │   ├── service/
+        │           │   │   │   │   └── impl/
+        │           │   │   │   └── vo/
+        │           │   │
+        │           │   │   └── product/                  # 商品SPU/SKU
+        │           │   │       ├── controller/
+        │           │   │       ├── convert/
+        │           │   │       ├── dto/
+        │           │   │       ├── entity/
+        │           │   │       ├── mapper/
+        │           │   │       ├── service/
+        │           │   │       │   └── impl/
+        │           │   │       └── vo/
+        │           │
+        │           │
+        │           │   └── system/                       # 系统管理领域
+        │           │
+        │           │       ├── user/                     # 用户管理
+        │           │       │   ├── controller/
+        │           │       │   ├── convert/
+        │           │       │   ├── dto/
+        │           │       │   ├── entity/
+        │           │       │   ├── mapper/
+        │           │       │   ├── service/
+        │           │       │   │   └── impl/
+        │           │       │   └── vo/
+        │           │
+        │           │       ├── role/                     # 角色管理
+        │           │       │   ├── controller/
+        │           │       │   ├── entity/
+        │           │       │   ├── mapper/
+        │           │       │   ├── service/
+        │           │       │   │   └── impl/
+        │           │       │   └── vo/
+        │           │
+        │           │       ├── permission/               # 权限/菜单管理
+        │           │       │   ├── controller/
+        │           │       │   ├── entity/
+        │           │       │   ├── mapper/
+        │           │       │   ├── service/
+        │           │       │   │   └── impl/
+        │           │       │   └── vo/
+        │           │
+        │           │       ├── log/                      # 操作日志
+        │           │       │   ├── controller/
+        │           │       │   ├── entity/
+        │           │       │   ├── mapper/
+        │           │       │   ├── service/
+        │           │       │   │   └── impl/
+        │           │       │   └── vo/
+        │           │
+        │           │       ├── online/                   # 在线用户
+        │           │       │   ├── controller/
+        │           │       │   ├── entity/
+        │           │       │   ├── service/
+        │           │       │   │   └── impl/
+        │           │       │   └── vo/
+        │           │
+        │           │       └── monitor/                  # 系统监控
+        │           │           ├── controller/
+        │           │           ├── service/
+        │           │           └── vo/
+        │           │
+        │
+        └── resources/
+            │
+            ├── application.yml                           # 主配置
+            ├── application-dev.yml                       # 开发环境
+            ├── application-uat.yml                       # 测试环境
+            ├── application-prd.yml                       # 生产环境
+            │
+            └── mapper/                                   # MyBatis XML
+                │
+                ├── auth/
+                │
+                ├── goods/
+                │   ├── brand/
+                │   ├── category/
+                │   └── product/
+                │
+                └── system/
+                    ├── log/
+                    ├── permission/
+                    ├── role/
+                    └── user/
 ```
 
 ---

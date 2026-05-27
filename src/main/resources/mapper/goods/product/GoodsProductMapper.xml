@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.inventory.modules.goods.product.mapper.GoodsProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.inventory.modules.goods.product.entity.GoodsProduct">
+            <id property="id" column="id" />
+            <result property="mainImage" column="main_image" />
+            <result property="images" column="images" />
+            <result property="productName" column="product_name" />
+            <result property="specModel" column="spec_model" />
+            <result property="productCode" column="product_code" />
+            <result property="categoryId" column="category_id" />
+            <result property="categoryName" column="category_name" />
+            <result property="brandId" column="brand_id" />
+            <result property="brandName" column="brand_name" />
+            <result property="supplierName" column="supplier_name" />
+            <result property="manufacturer" column="manufacturer" />
+            <result property="unit" column="unit" />
+            <result property="costPrice" column="cost_price" />
+            <result property="salePrice" column="sale_price" />
+            <result property="actualSalePrice" column="actual_sale_price" />
+            <result property="stock" column="stock" />
+            <result property="stockWarn" column="stock_warn" />
+            <result property="showcasePosition" column="showcase_position" />
+            <result property="shelfStatus" column="shelf_status" />
+            <result property="sort" column="sort" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,main_image,images,product_name,spec_model,product_code,
+        category_id,category_name,brand_id,brand_name,supplier_name,
+        manufacturer,unit,cost_price,sale_price,actual_sale_price,
+        stock,stock_warn,showcase_position,shelf_status,sort,
+        create_time,update_time,is_deleted
+    </sql>
+</mapper>

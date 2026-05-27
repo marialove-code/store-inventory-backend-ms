@@ -1,6 +1,6 @@
 package com.inventory.common.exception;
 
-import com.inventory.common.result.ResultCode;
+import com.inventory.common.response.ResultCode;
 import lombok.Getter;
 
 /**
