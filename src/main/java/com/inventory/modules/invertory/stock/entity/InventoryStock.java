@@ -1,0 +1,70 @@
+package com.inventory.modules.invertory.stock.entity;
+
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.util.Date;
+import lombok.Data;
+
+/**
+ * 
+ * @TableName inventory_stock
+ */
+@TableName(value ="inventory_stock")
+@Data
+public class InventoryStock {
+    /**
+     * 库存记录主键
+     */
+    @TableId
+    private Long id;
+
+    /**
+     * 商品ID
+     */
+    private Long goodsId;
+
+    /**
+     * 商品名称
+     */
+    private String goodsName;
+
+    /**
+     * 分类名称
+     */
+    private String categoryName;
+
+    /**
+     * 库存数量
+     */
+    private Integer stock;
+
+    /**
+     * 锁定库存
+     */
+    private Integer lockStock;
+
+    /**
+     * 库存预警值
+     */
+    private Integer stockWarn;
+
+    /**
+     * 库存状态：1-正常 2-预警 3-缺货
+     */
+    private Integer stockStatus;
+
+    /**
+     * 排序号，数字越小越靠前
+     */
+    private Integer sort;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 更新时间
+     */
+    private Date updateTime;
+}
