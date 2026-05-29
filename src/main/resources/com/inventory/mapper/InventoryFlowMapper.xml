@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.inventory.modules.invertory.stockflow.mapper.InventoryFlowMapper">
+
+    <resultMap id="BaseResultMap" type="com.inventory.modules.invertory.stockflow.entity.InventoryFlow">
+            <id property="id" column="id" />
+            <result property="goodsId" column="goods_id" />
+            <result property="goodsName" column="goods_name" />
+            <result property="beforeStock" column="before_stock" />
+            <result property="changeStock" column="change_stock" />
+            <result property="afterStock" column="after_stock" />
+            <result property="operateType" column="operate_type" />
+            <result property="operator" column="operator" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+            <result property="bizNo" column="biz_no" />
+            <result property="remark" column="remark" />
+            <result property="sort" column="sort" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,goods_id,goods_name,before_stock,change_stock,after_stock,
+        operate_type,operator,create_time,update_time,biz_no,
+        remark,sort
+    </sql>
+</mapper>
