@@ -21,4 +21,10 @@
         id,outbound_no,goods_id,goods_name,outbound_qty,operator,
         create_time,update_time,remark,sort
     </sql>
+
+    <select id="selectMaxSort" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(sort),0) + 1
+        FROM inventory_out;
+    </select>
+
 </mapper>

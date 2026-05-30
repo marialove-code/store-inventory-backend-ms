@@ -1,7 +1,12 @@
 package com.inventory.modules.invertory.stockflow.service;
 
+import com.inventory.common.response.Result;
+import com.inventory.modules.invertory.stockflow.dto.InventoryFlowQueryDTO;
 import com.inventory.modules.invertory.stockflow.entity.InventoryFlow;
 import com.baomidou.mybatisplus.extension.service.IService;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 /**
 * @author 95349
@@ -10,4 +15,18 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface InventoryFlowService extends IService<InventoryFlow> {
 
+    /**
+     * 库存流水分页列表查询
+     */
+    Result<?> pageFlowList(InventoryFlowQueryDTO queryDTO);
+
+    /**
+     * 获取库存流水详情
+     */
+    Result<?> getFlowDetail(String id);
+
+    /**
+     * 导出库存流水Excel
+     */
+    void exportFlowList(InventoryFlowQueryDTO queryDTO, HttpServletResponse response) throws IOException;
 }

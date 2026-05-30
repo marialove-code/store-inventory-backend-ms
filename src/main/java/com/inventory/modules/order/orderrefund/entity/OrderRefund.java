@@ -3,7 +3,10 @@ package com.inventory.modules.order.orderrefund.entity;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 /**
@@ -52,7 +55,7 @@ public class OrderRefund {
     /**
      * 申请时间
      */
-    private Date applyTime;
+    private LocalDateTime applyTime;
 
     /**
      * 审核备注
@@ -67,10 +70,12 @@ public class OrderRefund {
     /**
      * 创建时间
      */
-    private Date createTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime createTime;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime updateTime;
 }

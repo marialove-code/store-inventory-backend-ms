@@ -10,7 +10,11 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.inventory.modules.invertory.stockout.entity.InventoryOut
 */
 public interface InventoryOutMapper extends BaseMapper<InventoryOut> {
-
+    /**
+     * 查询最大序号
+     * @return
+     */
+    Integer selectMaxSort();
 }
 
 
