@@ -1,31 +1,25 @@
-package com.inventory.modules.invertory.stockflow.entity;
-
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.time.LocalDateTime;
-import java.util.Date;
+package com.inventory.modules.invertory.stockflow.vo;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 /**
- * 库存流水表
- * @TableName inventory_flow
+ * 库存流水返回VO
+ * 用于列表和详情接口
  */
-@TableName(value ="inventory_flow")
 @Data
-public class InventoryFlow {
+public class InventoryFlowVO {
+
     /**
-     * 流水主键
+     * 流水主键ID
      */
-    @TableId
-    private Long id;
+    private String id;
 
     /**
      * 商品ID
      */
-    private Long goodsId;
+    private String goodsId;
 
     /**
      * 商品名称
@@ -48,9 +42,9 @@ public class InventoryFlow {
     private Integer afterStock;
 
     /**
-     * 操作类型：1-入库 2-出库 3-锁定 4-解锁 5-调整
+     * 操作类型枚举：RECEIPT/OUTBOUND/LOCK/UNLOCK/ADJUST
      */
-    private Integer operateType;
+    private String operateType;
 
     /**
      * 操作人
@@ -64,12 +58,6 @@ public class InventoryFlow {
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private LocalDateTime updateTime;
-
-    /**
      * 业务单号
      */
     private String bizNo;
@@ -80,7 +68,7 @@ public class InventoryFlow {
     private String remark;
 
     /**
-     * 排序号，数字越小越靠前
+     * 操作类型名称（入库/出库/锁定/解锁/调整）
      */
-    private Integer sort;
+    private String operateTypeName;
 }
