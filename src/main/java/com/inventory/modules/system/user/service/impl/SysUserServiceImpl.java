@@ -104,13 +104,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public void updateUser(String id, SysUser dto) {
-        SysUser exist = this.getById(id);
+        SysUser exist = this.getById(Long.valueOf(id));
         if (exist == null || exist.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
 
         LambdaUpdateWrapper<SysUser> wrapper = Wrappers.lambdaUpdate();
-        wrapper.eq(SysUser::getId, id);
+        wrapper.eq(SysUser::getId, exist.getId());
 
         if (StrUtil.isNotBlank(dto.getNickName())) {
             wrapper.set(SysUser::getNickName, dto.getNickName());
