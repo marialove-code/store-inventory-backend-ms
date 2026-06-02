@@ -67,11 +67,13 @@ logging:
     com.inventory.mapper: debug
 
 # ====================== 自定义应用配置 ======================
+#      - https://nestparts.top
+#   - https://www.nestparts.top
 app:
   # 跨域配置
   cors:
     # 允许访问的前端地址
-    allowed-origins: http://120.53.88.204
+    allowed-origins: https://www.nestparts.top
   # 文件上传配置
   upload:
     # 头像上传存储路径（服务器本地目录）
