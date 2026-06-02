@@ -86,6 +86,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- 系统监控 -->
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>6.6.5</version>
+        </dependency>
+
         <!-- Spring AOP 依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

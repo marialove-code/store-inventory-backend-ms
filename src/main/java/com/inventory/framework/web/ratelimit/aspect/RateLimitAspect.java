@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 @Aspect
 @Component
-@Order(1)
+@Order(2)
 public class RateLimitAspect {
 
     private final RedisTemplate<String, Object> redisTemplate;
