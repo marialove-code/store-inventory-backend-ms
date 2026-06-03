@@ -13,7 +13,7 @@
             <result property="requestUri" column="request_uri" />
             <result property="ipAddress" column="ip_address" />
             <result property="browser" column="browser" />
-            <result property="os" column="os" />
+            <result property="operatingSystem" column="operating_system" />
             <result property="requestParams" column="request_params" />
             <result property="operateStatus" column="operate_status" />
             <result property="errorMessage" column="error_message" />
@@ -22,8 +22,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,username,title,operation_type,request_method,request_uri,
-        ip_address,browser,os,request_params,operate_status,
-        error_message,create_time,update_time
+        id,username,title,operation_type,request_method,request_uri,ip_address,browser,operating_system,
+        request_params,operate_status,error_message,create_time,update_time
     </sql>
 </mapper>

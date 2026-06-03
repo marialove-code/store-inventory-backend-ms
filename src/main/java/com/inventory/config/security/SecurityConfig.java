@@ -39,7 +39,6 @@ public class SecurityConfig {
             "/auth/login",
             "/auth/register",
             "/auth/refreshToken",
-
             // 这里改掉
             "/upload/avatar/**",
 
