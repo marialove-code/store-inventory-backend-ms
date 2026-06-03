@@ -1,6 +1,7 @@
 package com.inventory.modules.auth.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -12,6 +13,9 @@ import com.inventory.common.constants.RedisConstants;
 import com.inventory.framework.security.context.LoginUserContext;
 import com.inventory.modules.auth.vo.LoginTokenVO;
 import com.inventory.modules.auth.vo.LoginUserVO;
+import com.inventory.modules.system.log.entity.SysLoginLog;
+import com.inventory.modules.system.log.service.IpLocationService;
+import com.inventory.modules.system.log.service.SysLoginLogService;
 import com.inventory.modules.system.permission.entity.SysUserRole;
 import com.inventory.modules.auth.dto.SysUserLoginDTO;
 import com.inventory.modules.auth.dto.SysUserRegisterDTO;
@@ -24,6 +28,8 @@ import com.inventory.modules.system.user.service.SysUserService;
 import com.inventory.modules.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.lionsoul.ip2region.xdb.Searcher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,6 +49,7 @@ import static com.inventory.common.constants.PermissionConstants.SUPER_PERM_CODE
  * 负责：用户登录、注册、登出、Token刷新、获取当前用户
  * 完全基于 JWT + Redis + SpringSecurity 实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -54,6 +61,8 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final SysLoginLogService loginLogService;
+    private final IpLocationService ipLocationService;
 
     /**
      * AccessToken 过期时间（分钟）
@@ -108,16 +117,22 @@ public class AuthServiceImpl implements AuthService {
 
         SysUser user = sysUserService.getOne(wrapper);
         if (user == null) {
+            // 【新增：记录登录失败日志】
+            recordLoginLog(null, dto.getUserName(), null, request, 0, "用户不存在");
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
 
         // ====================== 2. 校验用户是否被禁用 ======================
         if (user.getStatus() == 0) {
-            throw new BusinessException(ResultCode.ACCOUNT_DISABLED); // 账号已被禁用
+            // 【新增：记录登录失败日志】
+            recordLoginLog(user.getId(), user.getUserName(), user.getNickName(), request, 0, "账号已被禁用");
+            throw new BusinessException(ResultCode.ACCOUNT_DISABLED);
         }
 
         // ====================== 3. 密码校验 ======================
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            // 【新增：记录登录失败日志】
+            recordLoginLog(user.getId(), user.getUserName(), user.getNickName(), request, 0, "密码错误");
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
 
@@ -127,13 +142,13 @@ public class AuthServiceImpl implements AuthService {
 
         List<String> permissions;
         if (isSuperAdmin) {
-            permissions = sysPermissionService.listAllPermCodes(); // 超级管理员：所有权限
+            permissions = sysPermissionService.listAllPermCodes();
         } else {
             List<String> rawPermissions = sysPermissionService.listPermCodesByUserId(user.getId());
             permissions = new ArrayList<>();
             if (rawPermissions != null && !rawPermissions.isEmpty()) {
                 for (String code : rawPermissions) {
-                    if (!SUPER_PERM_CODE.equals(code)) { // 过滤 *:*:* 超级权限
+                    if (!SUPER_PERM_CODE.equals(code)) {
                         permissions.add(code);
                     }
                 }
@@ -153,56 +168,37 @@ public class AuthServiceImpl implements AuthService {
         loginUser.setPermissions(permissions);
         loginUser.setAdmin(isSuperAdmin);
 
-        // ========================== 【修改完成 无报错 直接用】 ==========================
-        // 获取 IP（原生方法，不依赖任何工具类）
+        // ========================== 【原有代码不变】 ==========================
         String ip = request.getRemoteAddr();
-
-        // 获取 User-Agent
         String userAgent = request.getHeader("User-Agent");
-
-        // 使用你当前版本 Hutool 5.8.27 正确解析（不爆红、不报错）
         cn.hutool.http.useragent.UserAgent ua = cn.hutool.http.useragent.UserAgentUtil.parse(userAgent);
         String browser = ua.getBrowser().getName();
         String os = ua.getOs().getName();
 
-        // 时间
         LocalDateTime loginTime = LocalDateTime.now();
         LocalDateTime expireTime = loginTime.plusMinutes(accessExpire);
 
-        // 设置到登录用户信息里
         loginUser.setIpaddr(ip);
         loginUser.setBrowser(browser);
         loginUser.setOs(os);
         loginUser.setLoginTime(loginTime);
         loginUser.setExpireTime(expireTime);
-        // ========================== 【修改结束】 ==========================
+        // ========================== 【原有代码结束】 ==========================
 
-        // ====================== 7. Redis 存储 AccessToken 登录态（多设备支持） ======================
+        // 【新增：记录登录成功日志】
+        recordLoginLog(user.getId(), user.getUserName(), user.getNickName(), request, 1, "登录成功");
+
+        // ====================== 7. Redis 存储 AccessToken 登录态 ======================
         String redisAccessKey = "user:token:" + user.getId() + ":access:" + accessToken;
-        redisTemplate.opsForValue().set(
-                redisAccessKey,
-                loginUser,
-                accessExpire,
-                TimeUnit.MINUTES
-        );
+        redisTemplate.opsForValue().set(redisAccessKey, loginUser, accessExpire, TimeUnit.MINUTES);
 
-        // ====================== 8. Redis 存储 RefreshToken（多设备支持） ======================
+        // ====================== 8. Redis 存储 RefreshToken ======================
         String redisRefreshKey = "user:token:" + user.getId() + ":refresh:" + refreshToken;
-        redisTemplate.opsForValue().set(
-                redisRefreshKey,
-                user.getId(),
-                refreshExpire,
-                TimeUnit.MINUTES
-        );
+        redisTemplate.opsForValue().set(redisRefreshKey, user.getId(), refreshExpire, TimeUnit.MINUTES);
 
-        // ====================== 9. Redis 单独存储用户权限缓存（便于下线/角色变更） ======================
+        // ====================== 9. Redis 单独存储用户权限缓存 ======================
         String redisPermKey = "user:perm:" + user.getId();
-        redisTemplate.opsForValue().set(
-                redisPermKey,
-                permissions,          // 只存权限码列表
-                accessExpire,         // 与 AccessToken 同步过期时间
-                TimeUnit.MINUTES
-        );
+        redisTemplate.opsForValue().set(redisPermKey, permissions, accessExpire, TimeUnit.MINUTES);
 
         // ====================== 10. 封装返回给前端 ======================
         SysUserSimpleVO userVO = BeanUtil.copyProperties(loginUser, SysUserSimpleVO.class);
@@ -391,5 +387,49 @@ public class AuthServiceImpl implements AuthService {
 
         // ====================== 5. 返回 ======================
         return Result.success(vo);
+    }
+
+
+    /**
+     * 统一记录登录日志
+     * @param userId 用户ID
+     * @param userName 用户名
+     * @param nickName 昵称
+     * @param request 请求对象
+     * @param loginStatus 登录状态 1成功 0失败
+     * @param failReason 失败原因
+     */
+    private void recordLoginLog(Long userId, String userName, String nickName,
+                                HttpServletRequest request,
+                                Integer loginStatus, String failReason) {
+        try {
+            String ip = request.getRemoteAddr();
+            String userAgent = request.getHeader("User-Agent");
+            cn.hutool.http.useragent.UserAgent ua = cn.hutool.http.useragent.UserAgentUtil.parse(userAgent);
+            String browser = ua.getBrowser().getName();
+            String os = ua.getOs().getName();
+            String loginAddress = ipLocationService.resolveAddress(ip);
+            // 构建登录日志
+            SysLoginLog log = new SysLoginLog();
+            log.setId(IdUtil.getSnowflakeNextId()); // 雪花ID
+            log.setUserId(userId);
+            log.setUserName(userName);
+            log.setNickName(nickName);
+            log.setLoginIp(ip);
+            log.setLoginAddress(loginAddress);
+            log.setBrowser(browser);
+            log.setOperatingSystem(os);
+            log.setLoginStatus(loginStatus);
+            log.setFailReason(failReason);
+            log.setUserAgent(userAgent);
+            log.setLoginTime(LocalDateTime.now());
+            log.setCreatedTime(LocalDateTime.now());
+
+            // 异步保存日志，不影响登录性能
+            loginLogService.save(log);
+        } catch (Exception e) {
+            // 日志记录异常不影响主流程
+            log.error("记录登录日志失败", e);
+        }
     }
 }

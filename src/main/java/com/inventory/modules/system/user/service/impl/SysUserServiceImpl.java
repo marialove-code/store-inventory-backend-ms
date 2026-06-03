@@ -180,7 +180,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public void resetPassword(String id) {
-        SysUser user = this.getById(id);
+        SysUser user = this.getById(Long.valueOf(id));
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
