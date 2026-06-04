@@ -23,7 +23,7 @@ public interface OrderDeliveryService extends IService<OrderDelivery> {
      * @param endTime   结束时间
      * @return 分页结果
      */
-    Result<?> pageDeliveryList(Long pageNum, Long pageSize, String orderNo, String startTime, String endTime);
+    Result<?> pageDeliveryList(String orderNo, String startTime, String endTime, Long pageNum, Long pageSize);
 
 
 
@@ -35,5 +35,6 @@ public interface OrderDeliveryService extends IService<OrderDelivery> {
      * @return 操作结果
      */
     Result<?> confirmDelivery(Long id, OrderDeliveryDTO dto);
+
 
 }

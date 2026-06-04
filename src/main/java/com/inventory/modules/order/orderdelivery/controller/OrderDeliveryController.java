@@ -32,7 +32,7 @@ public class OrderDeliveryController {
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
-        return orderDeliveryService.pageDeliveryList(pageNum, pageSize, orderNo, startTime, endTime);
+        return orderDeliveryService.pageDeliveryList(orderNo, startTime, endTime, pageNum, pageSize);
     }
 
     /**
