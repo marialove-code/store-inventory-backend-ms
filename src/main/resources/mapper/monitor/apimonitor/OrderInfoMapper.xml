@@ -75,4 +75,13 @@
         GROUP BY TO_CHAR(create_time, 'HH24:00')
         ORDER BY time
     </select>
+
+
+    <!-- 今日接口调用量 -->
+    <select id="countTodayApiRequests" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM sys_api_monitor
+        WHERE create_time >= CURRENT_DATE
+        AND create_time &lt; CURRENT_DATE + INTERVAL '1 day'
+    </select>
 </mapper>

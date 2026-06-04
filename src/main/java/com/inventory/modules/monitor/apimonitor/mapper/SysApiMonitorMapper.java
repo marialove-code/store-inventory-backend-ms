@@ -22,4 +22,8 @@ public interface SysApiMonitorMapper extends BaseMapper<SysApiMonitor> {
 
     List<ApiRequestTrendVo> selectTrend(ApiMonitorQuery query);
 
+
+    // 统计今日接口调用次数
+    Integer countTodayApiRequests();
+
 }

@@ -22,4 +22,18 @@
         id,goods_id,goods_name,category_name,stock,lock_stock,
         stock_warn,stock_status,sort,create_time,update_time
     </sql>
+
+
+    <!-- 库存总量（PG版） -->
+    <select id="getTotalStock" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(stock), 0)
+        FROM inventory_stock
+    </select>
+
+    <!-- 库存预警数量（PG版 + XML转义） -->
+    <select id="getWarnStockCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM inventory_stock
+        WHERE stock &lt;= stock_warn
+    </select>
 </mapper>

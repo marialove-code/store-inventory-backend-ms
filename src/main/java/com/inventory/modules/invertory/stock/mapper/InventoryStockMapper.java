@@ -13,6 +13,12 @@ import org.apache.ibatis.annotations.Param;
 */
 public interface InventoryStockMapper extends BaseMapper<InventoryStock> {
 
+
+    // 库存总量
+    Integer getTotalStock();
+
+    // 库存预警商品数量
+    Integer getWarnStockCount();
 }
 
 
