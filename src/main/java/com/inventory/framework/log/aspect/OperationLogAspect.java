@@ -3,6 +3,7 @@ package com.inventory.framework.log.aspect;
 import cn.hutool.json.JSONUtil;
 import com.inventory.framework.log.annotation.OperationLog;
 import com.inventory.framework.security.context.LoginUserContext;
+import com.inventory.modules.auth.dto.SysUserLoginDTO;
 import com.inventory.modules.auth.vo.LoginUserVO;
 import com.inventory.modules.system.log.entity.SysOperationLog;
 import com.inventory.modules.system.user.entity.SysUser;
@@ -46,9 +47,31 @@ public class OperationLogAspect {
         HttpServletRequest request = attributes.getRequest();
 
         SysOperationLog logEntity = new SysOperationLog();
+        String username = "SYSTEM";
+
         LoginUserVO user = LoginUserContext.getUser();
+
+        if (user != null) {
+
+            username = user.getUsername();
+
+        } else {
+
+            Object[] args = point.getArgs();
+
+            for (Object arg : args) {
+
+                if (arg instanceof SysUserLoginDTO loginDTO) {
+
+                    username = loginDTO.getUserName();
+
+                    break;
+                }
+            }
+        }
+
+        logEntity.setUsername(username);
         logEntity.setTitle(operationLog.title());
-        logEntity.setUsername(user.getUsername());
         logEntity.setOperationType(operationLog.type().getDesc());
         logEntity.setRequestMethod(request.getMethod());
         logEntity.setRequestUri(request.getRequestURI());

@@ -28,4 +28,60 @@
         cost_price,sale_price,buy_qty,order_amount,order_status,
         pay_time,logistics_no,remark,create_time,update_time
     </sql>
+
+
+    <!-- 今日销售额 -->
+    <select id="getTodaySalesAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(order_amount), 0)
+        FROM order_info
+        WHERE create_time >= CURRENT_DATE
+        AND create_time &lt; CURRENT_DATE + INTERVAL '1 day'
+        AND order_status IN (1, 2)
+    </select>
+
+    <!-- 今日订单数 -->
+    <select id="getTodayOrderCount" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM order_info
+        WHERE create_time >= CURRENT_DATE
+        AND create_time &lt; CURRENT_DATE + INTERVAL '1 day'
+        AND order_status IN (1, 2)
+    </select>
+
+    <!-- 销售趋势 -->
+    <select id="getSalesTrend" resultType="com.inventory.modules.dashboard.vo.SalesTrendVO">
+        SELECT
+        TO_CHAR(create_time, 'MM-DD') AS date,
+        COALESCE(SUM(order_amount), 0) AS amount
+        FROM order_info
+        WHERE order_status IN (1, 2)
+        AND create_time >= CURRENT_DATE - INTERVAL '1 day' * #{days}
+        GROUP BY TO_CHAR(create_time, 'MM-DD'), create_time
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 热销TOP5 -->
+    <select id="getHotGoodsTop5" resultType="com.inventory.modules.dashboard.vo.HotGoodsVO">
+        SELECT
+        goods_name AS goodsName,
+        COALESCE(SUM(buy_qty), 0) AS salesNum
+        FROM order_info
+        WHERE order_status IN (1,2)
+        GROUP BY goods_id, goods_name
+        ORDER BY salesNum DESC
+        LIMIT 5
+    </select>
+
+    <!-- 分类占比 -->
+    <select id="getCategoryPercent" resultType="com.inventory.modules.dashboard.vo.CategoryPercentVO">
+        SELECT
+        p.category_name AS categoryName,
+        COALESCE(SUM(o.order_amount), 0) AS totalAmount
+        FROM order_info o
+        INNER JOIN goods_product p
+        ON o.goods_id = p.id
+        WHERE o.order_status IN (1,2)
+        GROUP BY p.category_id, p.category_name
+    </select>
+
 </mapper>
