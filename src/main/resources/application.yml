@@ -36,6 +36,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     cache-enabled: false
     jdbc-type-for-null: "null"
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 knife4j:
   enable: true

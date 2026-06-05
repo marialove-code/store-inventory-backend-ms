@@ -19,7 +19,7 @@ import com.inventory.modules.system.permission.entity.SysUserRole;
 import com.inventory.modules.system.user.mapper.SysUserMapper;
 import com.inventory.modules.system.permission.mapper.SysUserRoleMapper;
 import com.inventory.modules.system.user.service.SysUserService;
-import com.inventory.modules.auth.service.UserSessionService;
+import com.inventory.modules.auth.service.impl.UserSessionServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -47,7 +47,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final SysUserRoleMapper sysUserRoleMapper;
 
     @Resource
-    private UserSessionService userSessionService;
+    private UserSessionServiceImpl userSessionService;
 
 
     @Override

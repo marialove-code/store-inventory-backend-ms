@@ -1,5 +1,5 @@
 package com.inventory.modules.auth.service.impl;
-
+import java.util.Map;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
@@ -8,8 +8,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.inventory.common.exception.BusinessException;
 import com.inventory.common.response.Result;
 import com.inventory.common.response.ResultCode;
+import com.inventory.common.utils.IpUtils;
 import com.inventory.framework.security.jwt.JwtUtil;
-import com.inventory.common.constants.RedisConstants;
 import com.inventory.framework.security.context.LoginUserContext;
 import com.inventory.modules.auth.vo.LoginTokenVO;
 import com.inventory.modules.auth.vo.LoginUserVO;
@@ -29,7 +29,6 @@ import com.inventory.modules.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.lionsoul.ip2region.xdb.Searcher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,6 +42,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.inventory.common.constants.PermissionConstants.SUPER_PERM_CODE;
+import static com.inventory.common.constants.RedisConstants.*;
 
 /**
  * 认证服务实现类
@@ -54,92 +54,88 @@ import static com.inventory.common.constants.PermissionConstants.SUPER_PERM_CODE
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    // 用户服务
     private final SysUserService sysUserService;
+    // 角色服务
     private final SysRoleService sysRoleService;
+    // 权限服务
     private final SysPermissionService sysPermissionService;
-    private final SysUserRoleService sysUserRoleService;  // 注册需要绑定角色
+    // 用户角色关联服务
+    private final SysUserRoleService sysUserRoleService;
+    // JWT工具类
     private final JwtUtil jwtUtil;
+    // Redis模板
     private final RedisTemplate<String, Object> redisTemplate;
+    // 密码加密器
     private final PasswordEncoder passwordEncoder;
+    // 登录日志服务
     private final SysLoginLogService loginLogService;
+    // IP地址解析服务
     private final IpLocationService ipLocationService;
 
-    /**
-     * AccessToken 过期时间（分钟）
-     */
+    /** AccessToken 过期时间（分钟） */
     @Value("${jwt.access-expire}")
     private Long accessExpire;
 
-    /**
-     * RefreshToken 过期时间（分钟）
-     */
+    /** RefreshToken 过期时间（分钟） */
     @Value("${jwt.refresh-expire}")
     private Long refreshExpire;
 
-    // ========================== 【新增】用户注册 ==========================
+    // ========================== 用户注册 ==========================
     @Override
     public void register(SysUserRegisterDTO dto) {
-        // 1. 检查用户名是否已存在
+        // 1. 构造查询条件：根据用户名查询未删除的用户
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUser::getUserName, dto.getUserName());
         wrapper.eq(SysUser::getIsDeleted, 0);
-
+        // 2. 检查用户名是否已存在
         long count = sysUserService.count(wrapper);
         if (count > 0) {
             throw new BusinessException(ResultCode.USERNAME_EXIST);
         }
-
-        // 2. 构建用户并加密密码
+        // 3. 构建用户实体并加密密码
         SysUser user = new SysUser();
         user.setUserName(dto.getUserName());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setNickName(dto.getNickName());
         user.setStatus(1);
         user.setIsDeleted(0);
-
-        // 3. 保存用户
+        // 4. 保存用户信息
         sysUserService.save(user);
-
-        // 4. 自动绑定普通用户角色（roleId=3）
+        // 5. 自动绑定普通用户角色（roleId=3）
         SysUserRole userRole = new SysUserRole();
         userRole.setUserId(user.getId());
         userRole.setRoleId(3L);
         sysUserRoleService.save(userRole);
     }
 
-    // ========================== 登录（你原有代码） ==========================
+    // ========================== 用户登录 ==========================
     @Override
     public LoginTokenVO login(SysUserLoginDTO dto, HttpServletRequest request) {
-        // ====================== 1. 查询用户（未删除 + 已启用） ======================
+        // 1. 构造查询条件：根据用户名查询未删除的用户
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUser::getUserName, dto.getUserName());
         wrapper.eq(SysUser::getIsDeleted, 0);
-
         SysUser user = sysUserService.getOne(wrapper);
+        // 2. 用户不存在，记录失败日志并抛出异常
         if (user == null) {
-            // 【新增：记录登录失败日志】
             recordLoginLog(null, dto.getUserName(), null, request, 0, "用户不存在");
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
-
-        // ====================== 2. 校验用户是否被禁用 ======================
+        // 3. 用户被禁用，记录失败日志并抛出异常
         if (user.getStatus() == 0) {
-            // 【新增：记录登录失败日志】
             recordLoginLog(user.getId(), user.getUserName(), user.getNickName(), request, 0, "账号已被禁用");
             throw new BusinessException(ResultCode.ACCOUNT_DISABLED);
         }
-
-        // ====================== 3. 密码校验 ======================
+        // 4. 密码校验失败，记录失败日志并抛出异常
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            // 【新增：记录登录失败日志】
             recordLoginLog(user.getId(), user.getUserName(), user.getNickName(), request, 0, "密码错误");
             throw new BusinessException(ResultCode.LOGIN_ERROR);
         }
-
-        // ====================== 4. 查询用户角色 + 权限 ======================
+        // 5. 查询用户角色集合，判断是否为超级管理员
         List<String> roles = sysRoleService.listRoleCodesByUserId(user.getId());
         boolean isSuperAdmin = roles.contains("SUPER_ADMIN");
-
+        // 6. 查询用户权限集合：超级管理员拥有全部权限，普通用户查询自身权限
         List<String> permissions;
         if (isSuperAdmin) {
             permissions = sysPermissionService.listAllPermCodes();
@@ -154,12 +150,10 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
         }
-
-        // ====================== 5. 生成 JWT 双 Token ======================
+        // 7. 生成JWT双令牌：访问令牌AccessToken、刷新令牌RefreshToken
         String accessToken = jwtUtil.createAccessToken(user.getId(), user.getUserName());
         String refreshToken = jwtUtil.createRefreshToken(user.getId(), user.getUserName());
-
-        // ====================== 6. 封装登录用户信息 ======================
+        // 8. 封装登录用户VO对象
         LoginUserVO loginUser = new LoginUserVO();
         loginUser.setUserId(user.getId());
         loginUser.setUsername(user.getUserName());
@@ -167,231 +161,189 @@ public class AuthServiceImpl implements AuthService {
         loginUser.setRoles(roles);
         loginUser.setPermissions(permissions);
         loginUser.setAdmin(isSuperAdmin);
-
-        // ========================== 【原有代码不变】 ==========================
+        // 9. 解析请求信息：IP、浏览器、操作系统
         String ip = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
         cn.hutool.http.useragent.UserAgent ua = cn.hutool.http.useragent.UserAgentUtil.parse(userAgent);
         String browser = ua.getBrowser().getName();
         String os = ua.getOs().getName();
-
+        // 10. 设置登录时间与令牌过期时间
         LocalDateTime loginTime = LocalDateTime.now();
         LocalDateTime expireTime = loginTime.plusMinutes(accessExpire);
-
         loginUser.setIpaddr(ip);
         loginUser.setBrowser(browser);
         loginUser.setOs(os);
         loginUser.setLoginTime(loginTime);
         loginUser.setExpireTime(expireTime);
-        // ========================== 【原有代码结束】 ==========================
-
-        // 【新增：记录登录成功日志】
+        // 11. 记录登录成功日志
         recordLoginLog(user.getId(), user.getUserName(), user.getNickName(), request, 1, "登录成功");
-
-        // ====================== 7. Redis 存储 AccessToken 登录态 ======================
-        String redisAccessKey = "user:token:" + user.getId() + ":access:" + accessToken;
+        // 12. Redis缓存AccessToken登录态，设置过期时间
+        String redisAccessKey = LOGIN_TOKEN_PREFIX + user.getId() + ":access:" + accessToken;
         redisTemplate.opsForValue().set(redisAccessKey, loginUser, accessExpire, TimeUnit.MINUTES);
-
-        // ====================== 8. Redis 存储 RefreshToken ======================
-        String redisRefreshKey = "user:token:" + user.getId() + ":refresh:" + refreshToken;
+        // 13. Redis缓存RefreshToken，设置过期时间
+        String redisRefreshKey = LOGIN_TOKEN_PREFIX + user.getId() + ":refresh:" + refreshToken;
         redisTemplate.opsForValue().set(redisRefreshKey, user.getId(), refreshExpire, TimeUnit.MINUTES);
-
-        // ====================== 9. Redis 单独存储用户权限缓存 ======================
-        String redisPermKey = "user:perm:" + user.getId();
+        // 14. Redis缓存用户权限信息
+        String redisPermKey = USER_PERMISSION_PREFIX + user.getId();
         redisTemplate.opsForValue().set(redisPermKey, permissions, accessExpire, TimeUnit.MINUTES);
-
-        // ====================== 10. 封装返回给前端 ======================
+        // 15. Redis维护用户设备令牌映射关系
+        String deviceKey = USER_DEVICE_PREFIX + user.getId();
+        redisTemplate.opsForHash().put(deviceKey, accessToken, refreshToken);
+        redisTemplate.expire(deviceKey, refreshExpire, TimeUnit.MINUTES);
+        // 16. 封装返回前端的令牌VO对象
         SysUserSimpleVO userVO = BeanUtil.copyProperties(loginUser, SysUserSimpleVO.class);
         if (StrUtil.isBlank(userVO.getNickName())) {
             userVO.setNickName(user.getUserName());
         }
-
         LoginTokenVO vo = new LoginTokenVO();
         vo.setToken(accessToken);
         vo.setAccessToken(accessToken);
         vo.setRefreshToken(refreshToken);
         vo.setUser(userVO);
-
         return vo;
     }
 
-    /**
-     * 踢用户下线：删除 Redis 中所有 AccessToken、RefreshToken 和权限缓存
-     *
-     * @param userId 用户ID
-     */
-    private void kickUserOffline(Long userId) {
-        // ----------------- 1. 删除该用户所有 AccessToken -----------------
-        Set<String> accessKeys = redisTemplate.keys("user:token:" + userId + ":access:*");
-        if (accessKeys != null && !accessKeys.isEmpty()) {
-            redisTemplate.delete(accessKeys);
-        }
 
-        // ----------------- 2. 删除该用户所有 RefreshToken -----------------
-        Set<String> refreshKeys = redisTemplate.keys("user:token:" + userId + ":refresh:*");
-        if (refreshKeys != null && !refreshKeys.isEmpty()) {
-            redisTemplate.delete(refreshKeys);
-        }
 
-        // ----------------- 3. 删除该用户权限缓存 -----------------
-        String permKey = "user:perm:" + userId;
-        redisTemplate.delete(permKey);
-    }
-
-    // ========================== 登出（你原有代码） ==========================
+    // ========================== 用户登出 ==========================
     @Override
     public void logout(String token, String refreshToken) {
-
-        // ====================== accessToken ======================
+        // 1. 处理AccessToken：去除Bearer前缀并删除Redis缓存
         if (StrUtil.isNotBlank(token)) {
-
             token = token.trim();
-
             if (token.startsWith("Bearer ")) {
                 token = token.substring(7);
             }
-
-            redisTemplate.delete(
-                    RedisConstants.LOGIN_ACCESS_PREFIX + token
-            );
+            redisTemplate.delete(LOGIN_TOKEN_PREFIX + token);
         }
-
-        // ====================== refreshToken ======================
+        // 2. 处理RefreshToken：删除Redis缓存
         if (StrUtil.isNotBlank(refreshToken)) {
-
             refreshToken = refreshToken.trim();
-
-            redisTemplate.delete(
-                    RedisConstants.LOGIN_REFRESH_PREFIX + refreshToken
-            );
+            redisTemplate.delete(LOGIN_TOKEN_PREFIX + refreshToken);
         }
-
-        // ====================== 清空认证上下文 ======================
+        // 3. 清空SpringSecurity认证上下文
         SecurityContextHolder.clearContext();
     }
 
-    // ========================== 刷新Token（你原有代码） ==========================
+    // ========================== 刷新令牌 ==========================
     @Override
     public LoginTokenVO refreshToken(String refreshToken) {
-        // ====================== 1. 校验 RefreshToken 是否为空 ======================
+        // 1. 校验RefreshToken是否为空
         if (StrUtil.isBlank(refreshToken)) {
             throw new BusinessException(ResultCode.REFRESH_TOKEN_INVALID);
         }
-
-        // ====================== 2. 校验 RefreshToken 是否合法 ======================
+        // 2. 校验RefreshToken签名是否合法
         if (!jwtUtil.validateRefreshToken(refreshToken)) {
             throw new BusinessException(ResultCode.REFRESH_TOKEN_EXPIRED);
         }
-
-        // ====================== 3. 校验 Redis 是否存在（防止被踢下线） ======================
-        Boolean hasKey = redisTemplate.hasKey(RedisConstants.LOGIN_REFRESH_PREFIX + refreshToken);
-        if (Boolean.FALSE.equals(hasKey)) {
-            throw new BusinessException(ResultCode.LOGIN_STATUS_INVALID);
-        }
-
-        // ====================== 4. 从 Token 解析用户信息 ======================
+        // 3. 从RefreshToken解析用户ID与用户名
         Long userId = jwtUtil.getUserId(refreshToken);
         String username = jwtUtil.getUsername(refreshToken);
 
-        // ====================== 5. 生成新的 AccessToken ======================
+        // 4. 校验Redis中RefreshToken是否存在（防止被踢下线）
+        String refreshKey = LOGIN_TOKEN_PREFIX + userId + ":refresh:" + refreshToken;
+        Boolean hasKey = redisTemplate.hasKey(refreshKey);
+        if (Boolean.FALSE.equals(hasKey)) {
+            throw new BusinessException(ResultCode.LOGIN_STATUS_INVALID);
+        }
+        // 5. 生成新的AccessToken，复用旧RefreshToken
         String newAccessToken = jwtUtil.createAccessToken(userId, username);
+        String newRefreshToken = jwtUtil.createRefreshToken(userId, username);
 
-        // ====================== 6. 校验用户状态是否正常 ======================
+        // 6. 删除旧RefreshToken，缓存新RefreshToken
+        String oldRefreshKey = LOGIN_TOKEN_PREFIX + userId + ":refresh:" + refreshToken;
+        redisTemplate.delete(oldRefreshKey);
+        String newRefreshKey = LOGIN_TOKEN_PREFIX + userId + ":refresh:" + newRefreshToken;
+        redisTemplate.opsForValue().set(newRefreshKey, userId, refreshExpire, TimeUnit.MINUTES);
+
+        // 7. 校验用户状态：是否存在、是否禁用、是否删除
         SysUser user = sysUserService.getUserById(String.valueOf(userId));
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
-
-        // 用户被禁用
         if (user.getStatus() != 1) {
             throw new BusinessException(ResultCode.ACCOUNT_DISABLED);
         }
-
-        // 用户被删除
         if (user.getIsDeleted() != 0) {
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
-
-        // ====================== 7. 查询角色权限 ======================
+        // 8. 重新查询用户角色与权限
         List<String> roles = sysRoleService.listRoleCodesByUserId(userId);
         List<String> permissions = sysPermissionService.listPermCodesByUserId(userId);
-
-        // ====================== 8. 封装登录信息 ======================
+        // 9. 封装新的登录用户信息
         LoginUserVO loginUser = new LoginUserVO();
         loginUser.setUserId(userId);
         loginUser.setUsername(username);
         loginUser.setRoles(roles);
         loginUser.setPermissions(permissions);
         loginUser.setAdmin(roles.contains("SUPER_ADMIN"));
+        // 10. 缓存新的AccessToken
+        String accessKey = LOGIN_TOKEN_PREFIX + userId + ":access:" + newAccessToken;
+        redisTemplate.opsForValue().set(accessKey, loginUser, accessExpire, TimeUnit.MINUTES);
+        // 11. 更新設備令牌映射（RefreshToken轮换）
+        String deviceKey = USER_DEVICE_PREFIX + userId;
 
-        // ====================== 9. 保存新 AccessToken 到 Redis ======================
-        redisTemplate.opsForValue().set(
-                RedisConstants.LOGIN_ACCESS_PREFIX + newAccessToken,
-                loginUser,
-                accessExpire,
-                TimeUnit.MINUTES
-        );
+        // 查找旧映射并删除
+        Map<Object, Object> deviceMap = redisTemplate.opsForHash().entries(deviceKey);
+        Object oldAccessToken = null;
+        for (Map.Entry<Object, Object> entry : deviceMap.entrySet()) {
+            Object value = entry.getValue();
+            if (refreshToken.equals(value)) {
+                oldAccessToken = entry.getKey();
+                break;
+            }
+        }
+         // 删除旧映射
+        if (oldAccessToken != null) {
+            redisTemplate.opsForHash().delete(deviceKey, oldAccessToken);
+        }
+         // 保存新映射
+        redisTemplate.opsForHash().put(deviceKey, newAccessToken, newRefreshToken);
 
-        // ====================== 10. 封装返回用户 ======================
+         // 保证设备映射不过期
+        redisTemplate.expire(deviceKey, refreshExpire, TimeUnit.MINUTES);
+
+        // 12. 封装返回前端
         SysUserSimpleVO userVO = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
         if (StrUtil.isBlank(userVO.getNickName())) {
             userVO.setNickName(user.getUserName());
         }
-
-        // ====================== 11. 返回新 Token ======================
         LoginTokenVO vo = new LoginTokenVO();
         vo.setToken(newAccessToken);
         vo.setAccessToken(newAccessToken);
-        vo.setRefreshToken(refreshToken);
-        vo.setUser(userVO);
 
+     // 返回新的RefreshToken
+        vo.setRefreshToken(newRefreshToken);
+        vo.setUser(userVO);
         return vo;
     }
 
-    // ========================== 【新增】获取当前登录用户 ==========================
-
-    /**
-     * 获取当前登录用户信息
-     * <p>
-     * 说明：
-     * 1. 前端进入系统后会调用该接口
-     * 2. JWT过滤器已经完成认证
-     * 3. 当前用户信息会存入 SpringSecurity 上下文
-     */
+    // ========================== 获取当前登录用户 ==========================
     @Override
     public Result<SysUserSimpleVO> currentUser() {
-
-        // ====================== 1. 从 LoginUserContext 获取登录信息 ======================
+        // 1. 从上下文获取登录用户信息，JWT过滤器已完成鉴权
         LoginUserVO loginUser = LoginUserContext.getUser();
         if (loginUser == null) {
-            // 理论上不会发生，因为 JWT 过滤器已经鉴权
-            return Result.fail(ResultCode.NOT_LOGIN);}
-
-        // ====================== 2. 查询数据库，获取最新用户资料 ======================
+            return Result.fail(ResultCode.NOT_LOGIN);
+        }
+        // 2. 查询数据库获取最新用户信息
         SysUser user = sysUserService.getById(loginUser.getUserId());
         if (user == null) {
             return Result.fail(ResultCode.USER_NOT_EXIST);
         }
-
-        // ====================== 3. 转换 VO ======================
+        // 3. 转换为前端展示VO
         SysUserSimpleVO vo = BeanUtil.copyProperties(user, SysUserSimpleVO.class);
-
-        // 昵称为空时，默认显示用户名
         if (StrUtil.isBlank(vo.getNickName())) {
             vo.setNickName(user.getUserName());
         }
-
-        // ====================== 4. 可选：把角色/权限直接从 LoginUserContext 拿，避免数据库访问 ======================
+        // 4. 从上下文直接赋值角色与权限，避免重复查询数据库
         vo.setRoles(loginUser.getRoles());
         vo.setPermissions(loginUser.getPermissions());
-
-        // ====================== 5. 返回 ======================
         return Result.success(vo);
     }
 
-
     /**
-     * 统一记录登录日志
+     * 统一记录登录日志（公共方法）
      * @param userId 用户ID
      * @param userName 用户名
      * @param nickName 昵称
@@ -399,19 +351,18 @@ public class AuthServiceImpl implements AuthService {
      * @param loginStatus 登录状态 1成功 0失败
      * @param failReason 失败原因
      */
-    private void recordLoginLog(Long userId, String userName, String nickName,
-                                HttpServletRequest request,
-                                Integer loginStatus, String failReason) {
+    private void recordLoginLog(Long userId, String userName, String nickName, HttpServletRequest request, Integer loginStatus, String failReason) {
         try {
-            String ip = request.getRemoteAddr();
+            // 1. 解析IP、浏览器、操作系统、登录地址
+            String ip = IpUtils.getClientIp(request);
             String userAgent = request.getHeader("User-Agent");
             cn.hutool.http.useragent.UserAgent ua = cn.hutool.http.useragent.UserAgentUtil.parse(userAgent);
             String browser = ua.getBrowser().getName();
             String os = ua.getOs().getName();
             String loginAddress = ipLocationService.resolveAddress(ip);
-            // 构建登录日志
+            // 2. 构建登录日志实体
             SysLoginLog log = new SysLoginLog();
-            log.setId(IdUtil.getSnowflakeNextId()); // 雪花ID
+            log.setId(IdUtil.getSnowflakeNextId());
             log.setUserId(userId);
             log.setUserName(userName);
             log.setNickName(nickName);
@@ -424,11 +375,10 @@ public class AuthServiceImpl implements AuthService {
             log.setUserAgent(userAgent);
             log.setLoginTime(LocalDateTime.now());
             log.setCreatedTime(LocalDateTime.now());
-
-            // 异步保存日志，不影响登录性能
+            // 3. 异步保存日志，不影响登录主流程
             loginLogService.save(log);
         } catch (Exception e) {
-            // 日志记录异常不影响主流程
+            // 日志记录异常不抛出，不影响主业务
             log.error("记录登录日志失败", e);
         }
     }

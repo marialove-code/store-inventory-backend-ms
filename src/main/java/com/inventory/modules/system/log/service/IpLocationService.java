@@ -36,6 +36,13 @@ public class IpLocationService {
             return "未知";
         }
 
+        if ("127.0.0.1".equals(ip)
+                || "::1".equals(ip)
+                || "0:0:0:0:0:0:0:1".equals(ip)) {
+
+            return "本机访问";
+        }
+
         // 内网 IP
         if (isInternalIp(ip)) {
             return "内网IP";

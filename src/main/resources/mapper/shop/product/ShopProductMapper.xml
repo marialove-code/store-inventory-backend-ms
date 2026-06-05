@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.inventory.modules.shop.product.mapper.ShopProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.inventory.modules.shop.product.entity.ShopProduct">
+        <id column="id" property="id"/>
+        <result column="product_name" property="productName"/>
+        <result column="cost_price" property="costPrice"/>
+        <result column="sale_price" property="salePrice"/>
+        <result column="stock" property="stock"/>
+        <result column="source" property="source"/>
+        <result column="stock_warn" property="stockWarn"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+
+    <select id="selectWarnProduct" resultType="com.inventory.modules.shop.dashboard.vo.ShopStockWarnVO">
+        SELECT product_name,source as product_code,'-' as spec,stock,stock_warn
+        FROM shop_product
+        WHERE stock_warn IS NOT NULL AND stock &lt; stock_warn
+    </select>
+
+</mapper>

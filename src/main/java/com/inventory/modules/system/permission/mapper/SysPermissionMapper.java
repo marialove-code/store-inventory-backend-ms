@@ -2,6 +2,7 @@ package com.inventory.modules.system.permission.mapper;
 
 import com.inventory.modules.system.permission.entity.SysPermission;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -25,6 +26,24 @@ public interface SysPermissionMapper extends BaseMapper<SysPermission> {
      * @return
      */
     List<SysPermission> selectMenuPermissionsByUserId(Long userId);
+
+
+
+    /**
+     * 根据用户ID统计权限总数
+     */
+    Integer selectCountByUserId(@Param("userId") Long userId);
+
+    /**
+     * 查询全部权限
+     * @return
+     */
+    Integer selectPermissionCount();
+
+    /**
+     * 根据用户ID查询权限列表（所有）
+     */
+    List<SysPermission> selectListByUserId(@Param("userId") Long userId);
 
 
 }

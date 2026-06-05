@@ -16,7 +16,7 @@ import org.springframework.util.StringUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.inventory.common.constants.RedisConstants.LOGIN_ACCESS_PREFIX;
+import static com.inventory.common.constants.RedisConstants.LOGIN_TOKEN_PREFIX;
 
 /**
  * 在线用户 Service 实现
@@ -109,7 +109,7 @@ public class OnlineUserServiceImpl implements OnlineUserService {
             vo.setConnectStatus("PONG".equals(ping) ? "连接正常" : "连接异常");
 
             // 2. 统计在线用户 key 数量
-            Set<String> onlineKeys = redisTemplate.keys(LOGIN_ACCESS_PREFIX+"*:access:*");
+            Set<String> onlineKeys = redisTemplate.keys(LOGIN_TOKEN_PREFIX+"*:access:*");
             long onlineCount = (onlineKeys == null) ? 0L : onlineKeys.size();
             vo.setOnlineUserCount(onlineCount);
 
