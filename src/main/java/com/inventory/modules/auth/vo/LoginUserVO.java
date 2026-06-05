@@ -46,9 +46,16 @@ public class LoginUserVO implements Serializable {
      */
     private Boolean admin;
 
+    /**
+     * 当前登录AccessToken
+     */
+    private String accessToken;
+
+
     private String ipaddr;        // 登录IP
     private String browser;       // 浏览器
     private String os;            // 操作系统
     private LocalDateTime loginTime;  // 登录时间
     private LocalDateTime expireTime; // 过期时间
+
 }

@@ -62,10 +62,50 @@
         ORDER BY p.sort
     </select>
 
+    <!-- ===================== 1. 统计当前用户的权限总数 ===================== -->
+    <select id="selectCountByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT sp.id)
+        FROM sys_permission sp
+        JOIN sys_role_permission srp ON sp.id = srp.perm_id
+        JOIN sys_user_role sur ON srp.role_id = sur.role_id
+        WHERE sur.user_id = #{userId}
+        AND sp.is_deleted = 0
+        AND sp.status = 1
+    </select>
 
 
 
+    <!-- ===================== 2. 查询当前用户的权限列表（菜单树用） ===================== -->
+    <select id="selectListByUserId" resultMap="BaseResultMap">
+        SELECT DISTINCT
+        sp.id,
+        sp.parent_id,
+        sp.perm_name,
+        sp.perm_type,
+        sp.path,
+        sp.component,
+        sp.perm_code,
+        sp.icon,
+        sp.sort,
+        sp.status,
+        sp.create_time,
+        sp.update_time,
+        sp.is_deleted
+        FROM sys_permission sp
+        JOIN sys_role_permission srp ON sp.id = srp.perm_id
+        JOIN sys_user_role sur ON srp.role_id = sur.role_id
+        WHERE sur.user_id = #{userId}
+        AND sp.is_deleted = 0
+        AND sp.status = 1
+        ORDER BY sp.sort ASC
+    </select>
+    <select id="selectPermissionCount" resultType="java.lang.Integer">
 
+        SELECT COUNT(DISTINCT sp.id)
+        FROM sys_permission sp
+        WHERE  sp.is_deleted = 0
+        AND sp.status = 1
+    </select>
 
 
 </mapper>

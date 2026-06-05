@@ -14,6 +14,7 @@ public class LoginUserContext {
     private static final ThreadLocal<LoginUserVO> LOGIN_USER =
             new ThreadLocal<>();
 
+
     /**
      * 设置当前登录用户
      */
@@ -26,6 +27,22 @@ public class LoginUserContext {
      */
     public static LoginUserVO getUser() {
         return LOGIN_USER.get();
+    }
+
+
+
+    /**
+     * 当前AccessToken
+     */
+    private static final ThreadLocal<String> ACCESS_TOKEN =
+            new ThreadLocal<>();
+
+    public static void setAccessToken(String token) {
+        ACCESS_TOKEN.set(token);
+    }
+
+    public static String getAccessToken() {
+        return ACCESS_TOKEN.get();
     }
 
     /**
@@ -47,5 +64,6 @@ public class LoginUserContext {
      */
     public static void clear() {
         LOGIN_USER.remove();
+        ACCESS_TOKEN.remove();
     }
 }

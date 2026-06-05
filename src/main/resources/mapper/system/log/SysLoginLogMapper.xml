@@ -26,4 +26,17 @@
         login_time,created_time
     </sql>
 
+
+    <select id="selectLatestSuccessLog" resultType="com.inventory.modules.system.log.entity.SysLoginLog">
+        SELECT * FROM sys_login_log
+        WHERE user_id = #{userId} AND login_status = 1
+        ORDER BY login_time DESC LIMIT 1
+    </select>
+
+    <select id="selectRecentLogs" resultType="com.inventory.modules.system.log.entity.SysLoginLog">
+        SELECT * FROM sys_login_log
+        WHERE user_id = #{userId}
+        ORDER BY login_time DESC LIMIT #{limit}
+    </select>
+
 </mapper>

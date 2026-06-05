@@ -65,6 +65,7 @@ logging:
   level:
     # 打印 MyBatis SQL 日志
     com.inventory.mapper: debug
+    com.baomidou.mybatisplus: debug
 
 # ====================== 自定义应用配置 ======================
 app:

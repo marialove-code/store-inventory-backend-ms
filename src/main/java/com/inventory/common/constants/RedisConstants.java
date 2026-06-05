@@ -12,8 +12,6 @@ public class RedisConstants {
      *   - accessToken 用于多设备支持
      * ===========================================
      */
-    public static final String LOGIN_ACCESS_PREFIX = "user:token:";
-
     /**
      * 登录态 RefreshToken 前缀
      * 格式示例：
@@ -23,8 +21,7 @@ public class RedisConstants {
      *   - refreshToken 用于多设备支持
      * ===========================================
      */
-    public static final String LOGIN_REFRESH_PREFIX = "user:token:";
-
+    public static final String LOGIN_TOKEN_PREFIX = "user:token:";
     /**
      * 用户权限缓存前缀
      * 格式示例：
@@ -41,4 +38,15 @@ public class RedisConstants {
      * 可选：如果你在缓存里单独标记超级管理员
      */
     public static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+
+
+    /**
+     * 用户设备映射
+     *
+     * user:device:{userId}
+     *
+     * Hash:
+     * accessToken -> refreshToken
+     */
+    public static final String USER_DEVICE_PREFIX = "user:device:";
 }

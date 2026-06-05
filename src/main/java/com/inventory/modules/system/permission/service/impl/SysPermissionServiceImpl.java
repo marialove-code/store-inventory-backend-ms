@@ -11,7 +11,7 @@ import com.inventory.modules.system.permission.mapper.SysRolePermissionMapper;
 import com.inventory.modules.system.permission.mapper.SysUserRoleMapper;
 import com.inventory.modules.system.permission.service.SysPermissionService;
 import com.inventory.modules.system.permission.mapper.SysPermissionMapper;
-import com.inventory.modules.auth.service.UserSessionService;
+import com.inventory.modules.auth.service.impl.UserSessionServiceImpl;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +37,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
 
 
     @Resource
-    private UserSessionService userSessionService;
+    private UserSessionServiceImpl userSessionService;
     /**
      * 1. 根据用户ID查询权限标识集合（用于SpringSecurity权限校验）
      */

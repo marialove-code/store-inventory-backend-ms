@@ -17,7 +17,7 @@ import com.inventory.modules.system.permission.mapper.SysUserRoleMapper;
 import com.inventory.modules.system.role.service.SysRoleService;
 import com.inventory.modules.system.permission.service.SysPermissionService;
 import com.inventory.modules.system.role.mapper.SysRoleMapper;
-import com.inventory.modules.auth.service.UserSessionService;
+import com.inventory.modules.auth.service.impl.UserSessionServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -54,7 +54,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     @Resource
     private  SysPermissionMapper sysPermissionMapper;
     @Resource
-    private UserSessionService userSessionService;
+    private UserSessionServiceImpl userSessionService;
 
     /**
      * 角色分页条件查询
