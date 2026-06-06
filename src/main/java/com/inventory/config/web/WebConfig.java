@@ -48,8 +48,8 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(allowedOrigin)
+        registry.addMapping("/**").allowedOrigins()
+                .allowedOrigins(allowedOrigin.split(","))
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
@@ -66,11 +66,11 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:" + avatarPath);
 
         // 2. 商品图片映射
-        registry.addResourceHandler("/uploads/product/**")
+        registry.addResourceHandler("/upload/product/**")
                 .addResourceLocations("file:" + productImagePath);
 
         // 3. 品牌LOGO映射（修复你之前的错误）
-        registry.addResourceHandler("/uploads/brand/**")
+        registry.addResourceHandler("/upload/brand/**")
                 .addResourceLocations("file:" + brandPath);
     }
 }

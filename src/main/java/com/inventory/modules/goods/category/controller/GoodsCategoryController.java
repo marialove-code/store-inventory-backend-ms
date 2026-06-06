@@ -21,17 +21,6 @@ public class GoodsCategoryController {
 
     private final GoodsCategoryService goodsCategoryService;
 
-    /**
-     * 分页列表
-     */
-    @GetMapping("/list")
-    public Result<?> list(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") Long pageNum,
-            @RequestParam(defaultValue = "10") Long pageSize
-    ) {
-        return goodsCategoryService.page(keyword, pageNum, pageSize);
-    }
 
     /**
      * 分类树（下拉/级联用）

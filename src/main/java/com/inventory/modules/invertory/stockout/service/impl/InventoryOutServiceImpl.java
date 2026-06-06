@@ -2,6 +2,7 @@ package com.inventory.modules.invertory.stockout.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,6 +11,8 @@ import com.inventory.common.response.Result;
 import com.inventory.common.utils.OrderNoGenerator;
 import com.inventory.framework.security.context.LoginUserContext;
 import com.inventory.modules.auth.vo.LoginUserVO;
+import com.inventory.modules.goods.product.entity.GoodsProduct;
+import com.inventory.modules.goods.product.mapper.GoodsProductMapper;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
 import com.inventory.modules.invertory.stock.service.StockService;
@@ -52,6 +55,11 @@ public class InventoryOutServiceImpl extends ServiceImpl<InventoryOutMapper, Inv
      * 库存实时表 Mapper（用于库存充足性校验）
      */
     private final InventoryStockMapper inventoryStockMapper;
+
+    /**
+     * 商品基础 Mapper
+     */
+    private final GoodsProductMapper goodsProductMapper;
 
     // ======================== 1. 出库单分页查询 ========================
     /**
@@ -104,31 +112,8 @@ public class InventoryOutServiceImpl extends ServiceImpl<InventoryOutMapper, Inv
         }
     }
 
-    // ======================== 2. 查询出库单详情 ========================
-    /**
-     * 根据主键ID查询出库单详情
-     */
-    @Override
-    public Result<?> getStockOutDetail(Long id) {
-        try {
-            // 1. 根据ID查询数据
-            InventoryOut inventoryOut = stockOutMapper.selectById(id);
 
-            // 2. 数据不存在判断
-            if (inventoryOut == null) {
-                return Result.fail("出库单不存在");
-            }
-
-            // 3. 返回数据
-            return Result.success(inventoryOut);
-
-        } catch (Exception e) {
-            // 4. 异常处理
-            return Result.fail("查询出库单详情失败：" + e.getMessage());
-        }
-    }
-
-    // ======================== 3. 新增出库单 + 库存扣减 ========================
+    // ======================== 2. 新增出库单 + 库存扣减 ========================
     /**
      * 新增出库单（核心业务）
      * 逻辑：
@@ -212,7 +197,6 @@ public class InventoryOutServiceImpl extends ServiceImpl<InventoryOutMapper, Inv
             // ===================== 核心：调用库存服务扣减可用库存 =====================
             // 扣减库存 → 自动记录流水 → 自动刷新库存状态
             stockService.decreaseStock(goodsId, dto.getOutboundQty());
-            // ======================================================================
 
             // 13. 返回成功信息
             return Result.success("新增出库单成功，出库单号：" + outboundNo);

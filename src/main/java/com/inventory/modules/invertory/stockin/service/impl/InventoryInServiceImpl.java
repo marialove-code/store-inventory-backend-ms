@@ -2,6 +2,7 @@ package com.inventory.modules.invertory.stockin.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,6 +11,9 @@ import com.inventory.common.response.Result;
 import com.inventory.common.utils.OrderNoGenerator;
 import com.inventory.framework.security.context.LoginUserContext;
 import com.inventory.modules.auth.vo.LoginUserVO;
+import com.inventory.modules.goods.product.entity.GoodsProduct;
+import com.inventory.modules.goods.product.mapper.GoodsProductMapper;
+import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
 import com.inventory.modules.invertory.stock.service.StockService;
 import com.inventory.modules.invertory.stockin.dto.StockInAddDTO;
@@ -20,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.security.auth.login.LoginContext;
 import java.time.LocalDateTime;
 
 /**
@@ -51,6 +56,11 @@ public class InventoryInServiceImpl extends ServiceImpl<InventoryInMapper, Inven
      * 库存表 Mapper
      */
     private final InventoryStockMapper inventoryStockMapper;
+
+    /**
+     * 商品基础 Mapper
+     */
+    private final GoodsProductMapper goodsProductMapper;
 
     // ======================== 1. 入库单分页查询 ========================
     /**
@@ -168,7 +178,7 @@ public class InventoryInServiceImpl extends ServiceImpl<InventoryInMapper, Inven
             // 6. 获取当前登录用户（操作人）
             LoginUserVO user = LoginUserContext.getUser();
             if (user == null) {
-                return Result.fail("未获取到登录用户信息，无法新增入库单");
+                return Result.fail("未获取到登录用户信息，无法新增入库");
             }
             inventoryIn.setOperator(user.getUsername());
 
@@ -177,9 +187,7 @@ public class InventoryInServiceImpl extends ServiceImpl<InventoryInMapper, Inven
 
             // ===================== 核心：调用库存服务增加可用库存 =====================
             // 入库操作 → 库存数量增加 → 自动记录流水 → 自动刷新库存状态
-            stockService.increaseStock(goodsId, dto.getReceiptQty());
-            // ======================================================================
-
+            stockService.increaseStockFlow(goodsId, dto.getReceiptQty(),receiptNo);
             // 8. 返回成功信息（带入库单号）
             return Result.success("新增入库单成功，入库单号：" + receiptNo);
 

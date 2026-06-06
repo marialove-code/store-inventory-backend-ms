@@ -24,12 +24,7 @@ public interface InventoryOutService extends IService<InventoryOut> {
      */
     Result<?> pageStockOut(String outboundNo, String goodsName, String startTime, String endTime, Long pageNum, Long pageSize);
 
-    /**
-     * 查询出库单详情
-     * @param id 出库单ID
-     * @return 详情
-     */
-    Result<?> getStockOutDetail(Long id);
+
 
     /**
      * 新增出库单

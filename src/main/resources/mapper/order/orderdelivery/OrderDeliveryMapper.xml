@@ -19,6 +19,7 @@
             <result property="sort" column="sort" />
             <result property="createTime" column="create_time" />
             <result property="updateTime" column="update_time" />
+
     </resultMap>
 
     <sql id="Base_Column_List">

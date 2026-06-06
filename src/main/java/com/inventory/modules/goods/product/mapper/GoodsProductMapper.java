@@ -1,7 +1,10 @@
 package com.inventory.modules.goods.product.mapper;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.inventory.modules.goods.product.entity.GoodsProduct;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.inventory.modules.goods.product.vo.GoodsProductListVO;
+import org.apache.ibatis.annotations.Param;
 
 /**
 * @author 95349
@@ -10,6 +13,20 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.inventory.modules.goods.product.entity.GoodsProduct
 */
 public interface GoodsProductMapper extends BaseMapper<GoodsProduct> {
+
+    /**
+     * 商品+库存联查分页，所有参数全部传入XML动态拼接
+     */
+    Page<GoodsProductListVO> selectProductWithStock(Page<GoodsProductListVO> page,
+                                                    @Param("keyword") String keyword,
+                                                    @Param("categoryId") String categoryId,
+                                                    @Param("brandId") String brandId,
+                                                    @Param("shelfStatus") Integer shelfStatus,
+                                                    @Param("productCode") String productCode,
+                                                    @Param("minPrice") java.math.BigDecimal minPrice,
+                                                    @Param("maxPrice") java.math.BigDecimal maxPrice);
+
+
 
 }
 

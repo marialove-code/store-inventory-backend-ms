@@ -97,4 +97,11 @@ public class OrderInfo {
      * 更新时间（订单信息更新时间）
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 收货时间
+     */
+    private LocalDateTime receiveTime;
+
+
 }

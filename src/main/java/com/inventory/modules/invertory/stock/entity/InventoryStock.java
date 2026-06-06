@@ -73,4 +73,14 @@ public class InventoryStock {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
+
+    /**
+     * 最后入库时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime lastReceiptTime;
+    /**
+     * 出入库操作  1：入库 2：出库
+     */
+    private Integer operateType;
 }

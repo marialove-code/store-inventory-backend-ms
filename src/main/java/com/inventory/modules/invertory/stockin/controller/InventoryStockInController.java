@@ -43,15 +43,6 @@ public class InventoryStockInController {
         return stockInService.pageStockIn(receiptNo, goodsName, startTime, endTime, pageNum, pageSize);
     }
 
-    /**
-     * 入库详情查询
-     * 请求方式：GET
-     * 路径参数：id（入库单主键）
-     */
-    @GetMapping("/{id}")
-    public Result<?> detail(@PathVariable Long id) {
-        return stockInService.getStockInDetail(id);
-    }
 
     /**
      * 新增入库单

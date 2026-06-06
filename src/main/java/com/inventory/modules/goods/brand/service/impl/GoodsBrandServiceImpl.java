@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -171,26 +172,40 @@ public class GoodsBrandServiceImpl extends ServiceImpl<GoodsBrandMapper, GoodsBr
     // ====================== LOGO上传 ======================
     @Override
     public Result<?> uploadLogo(MultipartFile file) {
-        try {
-            String originalFilename = file.getOriginalFilename();
-            String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
-            String fileName = UUID.randomUUID() + suffix;
 
-            File dir = new File(uploadPath);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
-
-            File dest = new File(dir, fileName);
-            file.transferTo(dest);
-
-            String url = accessUrl + fileName;
-            return Result.success(url);
-        } catch (Exception e) {
-            return Result.fail("上传失败：" + e.getMessage());
+        if (file.isEmpty()) {
+            return Result.fail("上传文件不能为空");
         }
-    }
 
+        String originalFilename = file.getOriginalFilename();
+        String suffix = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        // 修复正则表达式的语法错误
+        if (!suffix.matches("\\.(png|jpg|jpeg|gif)")) {
+            return Result.fail("只支持png、jpg、jpeg、gif格式");
+        }
+
+        if (file.getSize() > 10 * 1024 * 1024) {
+            return Result.fail("图片大小不能超过2MB");
+        }
+
+        String fileName = UUID.randomUUID().toString().replace("-", "") + suffix;
+
+        try {
+            File dir = new File(uploadPath);
+            if (!dir.exists()) dir.mkdirs();
+
+            file.transferTo(new File(dir, fileName));
+
+            String avatarUrl = accessUrl + fileName;
+            return Result.success(avatarUrl);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Result.fail("logo上传失败");
+        }
+
+
+    }
 }
 
 

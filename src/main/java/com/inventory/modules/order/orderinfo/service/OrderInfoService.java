@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.inventory.common.response.Result;
 import com.inventory.modules.order.orderinfo.dto.OrderInfoDTO;
 import com.inventory.modules.order.orderinfo.entity.OrderInfo;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * 订单信息服务接口
@@ -52,5 +53,10 @@ public interface OrderInfoService extends IService<OrderInfo> {
      * @return 取消结果
      */
     Result<?> cancelOrder(Long id);
-
+    /**
+     * 确认收货（已发货）
+     * @param id 订单主键ID
+     * @return 支付结果
+     */
+    Result<?> receiveOrder(@NotNull(message = "订单ID不能为空") Long id);
 }

@@ -17,6 +17,9 @@
             <result property="sort" column="sort" />
             <result property="createTime" column="create_time" />
             <result property="updateTime" column="update_time" />
+            <result property="originalOrderStatus" column="original_order_status" />
+
+
     </resultMap>
 
     <sql id="Base_Column_List">

@@ -3,10 +3,13 @@ package com.inventory.modules.invertory.stock.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.inventory.common.response.Result;
+import com.inventory.modules.goods.product.entity.GoodsProduct;
+import com.inventory.modules.goods.product.mapper.GoodsProductMapper;
 import com.inventory.modules.invertory.stock.dto.StockWarnDTO;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.service.InventoryStockService;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +39,11 @@ public class InventoryStockServiceImpl extends ServiceImpl<InventoryStockMapper,
      * 库存实时表 Mapper
      */
     private final InventoryStockMapper stockMapper;
+
+    /**
+     * 商品基础 Mapper
+     */
+    private final GoodsProductMapper goodsProductMapper;
 
     // ======================== 1. 库存分页列表查询 ========================
     /**
@@ -108,7 +117,7 @@ public class InventoryStockServiceImpl extends ServiceImpl<InventoryStockMapper,
     // ======================== 2. 修改库存预警阈值 ========================
     /**
      * 修改商品库存预警值
-     * 逻辑：校验库存记录是否存在 → 更新 stockWarn 字段
+     * 逻辑：校验库存记录是否存在 → 更新 stockWarn 字段 → 同步更新商品表库存和预警
      *
      * @param id  库存记录ID
      * @param dto 预警值参数
@@ -131,7 +140,9 @@ public class InventoryStockServiceImpl extends ServiceImpl<InventoryStockMapper,
         // 4. 设置新的库存预警值
         stock.setStockWarn(dto.getStockWarn());
 
-        // 5. 执行更新操作
+        stock.setStock(dto.getStock());
+
+        // 5. 执行更新库存表操作
         updateById(stock);
 
         // 6. 返回成功提示

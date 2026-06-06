@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -71,7 +72,6 @@ public class GoodsCategoryServiceImpl extends ServiceImpl<GoodsCategoryMapper, G
     public Result<?> tree(String keyword) {
         LambdaQueryWrapper<GoodsCategory> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(GoodsCategory::getIsDeleted, 0);
-        wrapper.eq(GoodsCategory::getStatus, 1); // 只查启用的
 
         if (StrUtil.isNotBlank(keyword)) {
             wrapper.like(GoodsCategory::getCategoryName, keyword);
@@ -163,19 +163,44 @@ public class GoodsCategoryServiceImpl extends ServiceImpl<GoodsCategoryMapper, G
         return Result.success("批量删除成功");
     }
 
-    // ====================== 状态修改 ======================
+    // ====================== 状态修改（递归修改所有子集） ======================
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<?> updateStatus(String id, Integer status) {
         Long longId = Long.valueOf(id);
 
+        // 1. 递归查询：当前分类 + 所有子子孙孙分类ID
+        List<Long> allCategoryIds = findAllChildCategoryIds(longId);
+
+        // 2. 批量更新所有分类状态
         LambdaUpdateWrapper<GoodsCategory> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(GoodsCategory::getId, longId);
+        wrapper.in(GoodsCategory::getId, allCategoryIds); // 关键：IN 所有ID
         wrapper.set(GoodsCategory::getStatus, status);
         wrapper.set(GoodsCategory::getUpdateTime, LocalDateTime.now());
 
         this.update(wrapper);
-        return Result.success("状态修改成功");
+        return Result.success("状态修改成功，共修改 " + allCategoryIds.size() + " 条分类");
+    }
+
+    /**
+     * 递归查询：当前分类ID + 所有子级、孙子级...分类ID
+     */
+    private List<Long> findAllChildCategoryIds(Long parentId) {
+        List<Long> ids = new ArrayList<>();
+        // 先把自己加进去
+        ids.add(parentId);
+
+        // 查询子分类
+        LambdaQueryWrapper<GoodsCategory> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(GoodsCategory::getParentId, parentId);
+        List<GoodsCategory> childList = this.list(queryWrapper);
+
+        // 递归查询子分类的子分类
+        for (GoodsCategory child : childList) {
+            ids.addAll(findAllChildCategoryIds(child.getId()));
+        }
+
+        return ids;
     }
 
     // ====================== 批量状态修改 ======================

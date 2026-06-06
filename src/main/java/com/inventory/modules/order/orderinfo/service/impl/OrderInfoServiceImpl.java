@@ -3,6 +3,7 @@ package com.inventory.modules.order.orderinfo.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -13,6 +14,8 @@ import com.inventory.common.utils.OrderNoGenerator;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
 import com.inventory.modules.invertory.stock.service.StockService;
+import com.inventory.modules.order.orderdelivery.entity.OrderDelivery;
+import com.inventory.modules.order.orderdelivery.mapper.OrderDeliveryMapper;
 import com.inventory.modules.order.orderinfo.dto.OrderInfoDTO;
 import com.inventory.modules.order.orderinfo.entity.OrderInfo;
 import com.inventory.modules.order.orderinfo.mapper.OrderInfoMapper;
@@ -56,6 +59,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      * 库存实时表 Mapper（创建订单前校验库存）
      */
     private final InventoryStockMapper inventoryStockMapper;
+
+    /**
+     * 发货管理
+     */
+    private final OrderDeliveryMapper orderDeliveryMapper;
 
     /**
      * 时间格式化：yyyy-MM-dd HH:mm:ss
@@ -227,7 +235,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     // ======================== 3. 订单支付 ========================
     /**
      * 订单支付
-     * 仅允许：待支付 → 已支付
+     * 仅允许：待支付 → 待发货
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -241,18 +249,37 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         // 2. 仅待支付可支付
         Integer pendingCode = OrderStatusEnum.PENDING_PAYMENT.getCode();
         Integer currentStatus = order.getOrderStatus();
-
         if (!pendingCode.equals(currentStatus)) {
             return Result.fail("仅待支付订单可执行支付操作");
         }
 
-        // 3. 更新为已支付状态
+        // 3. 主订单更新：待支付→待发货
         order.setOrderStatus(OrderStatusEnum.PAID.getCode());
         order.setPayTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
 
-        return Result.success("订单支付成功");
+        // ==========【新增：生成发货管理数据】==========
+        OrderDelivery delivery = new OrderDelivery();
+        delivery.setOrderNo(order.getOrderNo());
+        delivery.setUserId(order.getUserId());
+        delivery.setUserName(order.getUserName());
+        delivery.setGoodsId(order.getGoodsId());
+        delivery.setGoodsName(order.getGoodsName());
+        delivery.setBuyQty(order.getBuyQty());
+        delivery.setOrderAmount(order.getOrderAmount());
+        delivery.setOrderStatus(1); // 1=待发货（发货管理待处理）
+        delivery.setLogisticsNo("");//未填物流单号
+        delivery.setRemark("支付自动生成待发货单");
+        delivery.setSort(0);
+        delivery.setCreateTime(LocalDateTime.now());
+        delivery.setUpdateTime(LocalDateTime.now());
+        //插入发货表
+        orderDeliveryMapper.insert(delivery);
+
+        //【此处补充你原有库存扣减代码：释放锁定库存、扣可用库存、新增库存流水】
+
+        return Result.success("订单支付成功，已自动生成待发货单据");
     }
 
     // ======================== 4. 取消订单 ========================
@@ -295,39 +322,35 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         return Result.success("订单已取消，锁定库存已释放");
     }
 
-    // ======================== 5. 订单发货 ========================
-    /**
-     * 订单发货
-     * 逻辑：
-     * 1. 仅已支付可发货
-     * 2. 发货扣减真实库存
-     * 3. 更新状态为已发货
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public Result<?> deliverOrder(Long id, String logisticsNo) {
+    @Override
+    public Result<?> receiveOrder(Long id) {
         // 1. 查询订单
         OrderInfo order = getById(id);
         if (order == null) {
             return Result.fail("订单不存在");
         }
 
-        // 2. 仅已支付可发货
-        Integer paidCode = OrderStatusEnum.PAID.getCode();
+        // 2. 只有【已发货】才能确认收货
+        Integer shippedCode = OrderStatusEnum.SHIPPED.getCode(); // 已发货状态码
         Integer currentStatus = order.getOrderStatus();
-
-        if (!paidCode.equals(currentStatus)) {
-            return Result.fail("仅已支付订单可发货");
+        if (!shippedCode.equals(currentStatus)) {
+            return Result.fail("只有已发货的订单才能确认收货");
         }
 
-        // ===================== 3. 扣减真实库存 =====================
-        stockService.decreaseStock(order.getGoodsId(), order.getBuyQty());
-
-        // 4. 更新发货信息
-        order.setOrderStatus(OrderStatusEnum.SHIPPED.getCode());
-        order.setLogisticsNo(logisticsNo);
+        // 3. 订单状态更新：已发货 → 已完成/已收货
+        order.setOrderStatus(OrderStatusEnum.COMPLETED.getCode()); // 已完成
+        order.setReceiveTime(LocalDateTime.now()); // 确认收货时间
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
 
-        return Result.success("订单发货成功，库存已正式扣减");
+        // ==========【关键：同步更新发货单状态为 3 = 已收货】==========
+        LambdaUpdateWrapper<OrderDelivery> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(OrderDelivery::getOrderNo, order.getOrderNo())
+                .set(OrderDelivery::getOrderStatus, 3); // 3=已收货
+
+        orderDeliveryMapper.update(null, updateWrapper);
+
+        return Result.success("确认收货成功，订单已完成");
     }
+
 }

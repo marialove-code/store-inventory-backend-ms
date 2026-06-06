@@ -44,16 +44,6 @@ public class InventoryOutController {
     }
 
     /**
-     * 出库详情查询
-     * 请求方式：GET
-     * 路径参数：id（出库单主键）
-     */
-    @GetMapping("/{id}")
-    public Result<?> detail(@PathVariable Long id) {
-        return stockOutService.getStockOutDetail(id);
-    }
-
-    /**
      * 新增出库单
      * 请求方式：POST
      * 请求体：StockOutAddDTO（已做参数校验）

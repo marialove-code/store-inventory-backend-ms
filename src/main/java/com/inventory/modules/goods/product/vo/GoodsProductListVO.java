@@ -17,6 +17,9 @@ public class GoodsProductListVO {
     /** 商品主图 */
     private String mainImage;
 
+    /** 商品全部图片 */
+    private String images;
+
     /** 商品名称 */
     private String productName;
 
@@ -53,8 +56,6 @@ public class GoodsProductListVO {
     /** 销售价 */
     private BigDecimal salePrice;
 
-    /** 实际售价（实销价） → 新增 */
-    private BigDecimal actualSalePrice;
 
     /** 当前库存 */
     private Integer stock;

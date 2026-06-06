@@ -8,10 +8,13 @@ import lombok.Getter;
 public enum OrderStatusEnum {
 
     PENDING_PAYMENT(0, "待支付"),
-    PAID(1, "已支付"),
+    PAID(1, "待发货"),
     SHIPPED(2, "已发货"),
-    COMPLETED(3, "已完成"),
-    CANCELED(4, "已取消");
+    COMPLETED(3, "已收货"),
+    CANCELED(4, "已取消"),
+    REFUNDING(5, "退款中"),  // 新增
+    REFUNDED(6, "退款成功");   // 新增
+
 
     private final Integer code;
     private final String desc;

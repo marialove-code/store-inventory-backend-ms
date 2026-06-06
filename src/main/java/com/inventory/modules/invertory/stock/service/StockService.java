@@ -15,12 +15,26 @@ public interface StockService {
     void increaseStock(Long goodsId, Integer qty);
 
     /**
+     * 增加库存带流水号
+     * @param goodsId 商品ID
+     * @param qty 增加的数量
+     */
+    void increaseStockFlow(Long goodsId, Integer qty,String receiptNo);
+
+    /**
      * 扣减库存（发货、出库 使用）
      * @param goodsId 商品ID
      * @param qty 扣减的数量
      */
     void decreaseStock(Long goodsId, Integer qty);
 
+
+    /**
+     * 扣减库存带流水号
+     * @param goodsId 商品ID
+     * @param qty 扣减的数量
+     */
+    void decreaseStockFlow(Long goodsId, Integer qty, String receiptNo);
     /**
      * 锁定库存（创建订单预占库存 使用）
      * @param goodsId 商品ID
