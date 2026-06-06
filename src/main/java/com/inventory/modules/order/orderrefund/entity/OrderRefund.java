@@ -78,4 +78,14 @@ public class OrderRefund {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
+
+    /**
+     * 退款前订单原始状态 1-待发货 2-已发货 3-已收货
+     */
+    private Integer originalOrderStatus;
+
+    /**
+     * 退款前发货单原始状态 1-待发货 2-已发货 3-已收货
+     */
+    private Integer originalDeliveryStatus;
 }

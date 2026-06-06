@@ -47,15 +47,6 @@ public class InventoryFlowController {
         return inventoryFlowService.pageFlowList(queryDTO);
     }
 
-    /**
-     * 库存流水详情查询
-     * @param id 流水记录ID
-     * 权限：inventory:flow:detail
-     */
-    @GetMapping("/{id}")
-    public Result<?> detail(@PathVariable String id) {
-        return inventoryFlowService.getFlowDetail(id);
-    }
 
     /**
      * 导出库存流水Excel

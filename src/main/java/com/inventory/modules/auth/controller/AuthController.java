@@ -39,7 +39,7 @@ public class AuthController {
     /**
      * 登录
      */
-    @RateLimit(limit = 3, period = 60, msg = "登录请求频繁")
+//    @RateLimit(limit = 3, period = 60, msg = "登录请求频繁")
     @OperationLog(title = "用户登录", type = OperationTypeEnum.LOGIN)
     @PostMapping("/login")
     public Result<LoginTokenVO> login(@RequestBody SysUserLoginDTO dto, HttpServletRequest request) {

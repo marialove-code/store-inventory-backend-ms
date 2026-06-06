@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -84,80 +85,10 @@ public class GoodsProductServiceImpl extends ServiceImpl<GoodsProductMapper, Goo
     public Result<?> pageProduct(String keyword, String categoryId, String brandId, Integer shelfStatus,
                                  String productCode, BigDecimal minPrice, BigDecimal maxPrice,
                                  Long pageNum, Long pageSize) {
-        // 1. 初始化分页对象
-        Page<GoodsProduct> page = new Page<>(pageNum, pageSize);
-
-        // 2. 构建查询条件（未删除数据）
-        LambdaQueryWrapper<GoodsProduct> wrapper = Wrappers.lambdaQuery();
-        wrapper.eq(GoodsProduct::getIsDeleted, 0);
-
-        // 3. 关键词模糊匹配：商品名称 或 商品编码
-        if (StrUtil.isNotBlank(keyword)) {
-            wrapper.and(w -> w
-                    .like(GoodsProduct::getProductName, keyword)
-                    .or()
-                    .like(GoodsProduct::getProductCode, keyword)
-            );
-        }
-
-        // 4. 分类ID精确匹配
-        if (StrUtil.isNotBlank(categoryId)) {
-            wrapper.eq(GoodsProduct::getCategoryId, Long.valueOf(categoryId));
-        }
-
-        // 5. 品牌ID精确匹配
-        if (StrUtil.isNotBlank(brandId)) {
-            wrapper.eq(GoodsProduct::getBrandId, Long.valueOf(brandId));
-        }
-
-        // 6. 上下架状态匹配
-        if (shelfStatus != null) {
-            wrapper.eq(GoodsProduct::getShelfStatus, shelfStatus);
-        }
-
-        // 7. 商品编码精确匹配
-        if (StrUtil.isNotBlank(productCode)) {
-            wrapper.eq(GoodsProduct::getProductCode, productCode);
-        }
-
-        // 8. 售价 >= 最低价
-        if (minPrice != null) {
-            wrapper.ge(GoodsProduct::getSalePrice, minPrice);
-        }
-
-        // 9. 售价 <= 最高价
-        if (maxPrice != null) {
-            wrapper.le(GoodsProduct::getSalePrice, maxPrice);
-        }
-
-        // 10. 排序规则：排序号正序，创建时间倒序
-        wrapper.orderByAsc(GoodsProduct::getSort);
-        wrapper.orderByDesc(GoodsProduct::getCreateTime);
-
-        // 11. 执行分页查询
-        Page<GoodsProduct> productPage = goodsProductMapper.selectPage(page, wrapper);
-
-        // 12. 封装分页VO对象（保持分页信息）
-        Page<GoodsProductListVO> voPage = new Page<>(
-                productPage.getCurrent(),
-                productPage.getSize(),
-                productPage.getTotal()
-        );
-
-        // 13. 实体列表转VO列表（替换Stream为普通for循环）
-        List<GoodsProductListVO> voList = new ArrayList<>();
-        List<GoodsProduct> records = productPage.getRecords();
-        for (GoodsProduct product : records) {
-            GoodsProductListVO vo = new GoodsProductListVO();
-            // 属性拷贝（保持不变）
-            BeanUtil.copyProperties(product, vo);
-            voList.add(vo);
-        }
-
-        // 14. 设置VO列表到分页对象
-        voPage.setRecords(voList);
-
-        // 15. 返回成功结果
+        // 初始化分页
+        Page<GoodsProductListVO> page = new Page<>(pageNum, pageSize);
+        // 直接调用XML联查分页
+        Page<GoodsProductListVO> voPage = goodsProductMapper.selectProductWithStock(page,keyword,categoryId,brandId,shelfStatus,productCode,minPrice,maxPrice);
         return Result.success(voPage);
     }
 
@@ -219,7 +150,6 @@ public class GoodsProductServiceImpl extends ServiceImpl<GoodsProductMapper, Goo
         // 5. 价格信息赋值
         product.setCostPrice(dto.getCostPrice());
         product.setSalePrice(dto.getSalePrice());
-        product.setActualSalePrice(dto.getActualSalePrice());
 
         // 6. 库存信息：空值赋默认值0
         if (dto.getStock() == null) {
@@ -271,10 +201,25 @@ public class GoodsProductServiceImpl extends ServiceImpl<GoodsProductMapper, Goo
         stock.setGoodsId(product.getId());
         stock.setGoodsName(product.getProductName());
         stock.setCategoryName(product.getCategoryName());
-        stock.setStock(0);
+
+        Integer currentStock = product.getStock();
+        Integer warnStock = product.getStockWarn();
+        Integer stockStatus;
+
+        if (currentStock > warnStock) {
+            // 大于预警值 → 正常 1
+            stockStatus = 1;
+        } else if (currentStock.equals(warnStock)) {
+            // 等于预警值 → 预警 2
+            stockStatus = 2;
+        } else {
+            // 小于预警值 → 缺货 3
+            stockStatus = 3;
+        }
+        stock.setStockStatus(stockStatus);
+        stock.setStock(currentStock); //库存
         stock.setLockStock(0);
-        stock.setStockWarn(product.getStockWarn());
-        stock.setStockStatus(3); // 3=缺货
+        stock.setStockWarn(warnStock); //库存预警值
         stock.setSort(0);
         stock.setCreateTime(LocalDateTime.now());
         stock.setUpdateTime(LocalDateTime.now());
@@ -335,16 +280,12 @@ public class GoodsProductServiceImpl extends ServiceImpl<GoodsProductMapper, Goo
         wrapper.set(StrUtil.isNotBlank(dto.getSupplierName()), GoodsProduct::getSupplierName, dto.getSupplierName());
         wrapper.set(StrUtil.isNotBlank(dto.getManufacturer()), GoodsProduct::getManufacturer, dto.getManufacturer());
         wrapper.set(StrUtil.isNotBlank(dto.getUnit()), GoodsProduct::getUnit, dto.getUnit());
-
         // 价格字段
         wrapper.set(dto.getCostPrice() != null, GoodsProduct::getCostPrice, dto.getCostPrice());
         wrapper.set(dto.getSalePrice() != null, GoodsProduct::getSalePrice, dto.getSalePrice());
-        wrapper.set(dto.getActualSalePrice() != null, GoodsProduct::getActualSalePrice, dto.getActualSalePrice());
-
         // 库存字段
         wrapper.set(dto.getStock() != null, GoodsProduct::getStock, dto.getStock());
         wrapper.set(dto.getStockWarn() != null, GoodsProduct::getStockWarn, dto.getStockWarn());
-
         // 位置、状态、排序
         wrapper.set(StrUtil.isNotBlank(dto.getShowcasePosition()), GoodsProduct::getShowcasePosition, dto.getShowcasePosition());
         wrapper.set(dto.getShelfStatus() != null, GoodsProduct::getShelfStatus, dto.getShelfStatus());

@@ -91,10 +91,6 @@ public class GoodsProduct {
      */
     private BigDecimal salePrice;
 
-    /**
-     * 实际售价/实销价
-     */
-    private BigDecimal actualSalePrice;
 
     /**
      * 当前库存

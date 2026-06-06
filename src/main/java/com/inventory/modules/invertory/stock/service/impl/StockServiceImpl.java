@@ -62,6 +62,11 @@ public class StockServiceImpl implements StockService {
         updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
         // 执行SQL：stock = stock + qty
         updateStockWrapper.setSql("stock = stock + " + qty);
+        updateStockWrapper.set(InventoryStock::getLastReceiptTime, LocalDateTime.now());
+        updateStockWrapper.set(InventoryStock::getOperateType, 1);
+
+        updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+
         inventoryStockMapper.update(null, updateStockWrapper);
 
         // ===================== 3. 记录库存流水 =====================
@@ -76,6 +81,45 @@ public class StockServiceImpl implements StockService {
                 stock.getStock() + qty,
                 operateType,
                 null,
+                remark
+        );
+
+        // ===================== 4. 刷新库存状态 =====================
+        refreshStatus(goodsId);
+    }
+
+    @Override
+    public void increaseStockFlow(Long goodsId, Integer qty, String receiptNo) {
+        // ===================== 1. 查询当前库存信息 =====================
+        LambdaQueryWrapper<InventoryStock> queryStockWrapper = new LambdaQueryWrapper<>();
+        queryStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        InventoryStock stock = inventoryStockMapper.selectOne(queryStockWrapper);
+
+        // ===================== 2. 执行库存增加 =====================
+        // 拼接更新条件：商品ID匹配
+        LambdaUpdateWrapper<InventoryStock> updateStockWrapper = new LambdaUpdateWrapper<>();
+        updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        // 执行SQL：stock = stock + qty
+        updateStockWrapper.setSql("stock = stock + " + qty);
+        updateStockWrapper.set(InventoryStock::getLastReceiptTime, LocalDateTime.now());
+        updateStockWrapper.set(InventoryStock::getOperateType, 1);
+
+        updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+
+        inventoryStockMapper.update(null, updateStockWrapper);
+
+        // ===================== 3. 记录库存流水 =====================
+        // 操作类型：1=入库增加库存
+        Integer operateType = 1;
+        String remark = "入库增加库存";
+        writeFlow(
+                goodsId,
+                stock.getGoodsName(),
+                stock.getStock(),
+                qty,
+                stock.getStock() + qty,
+                operateType,
+                receiptNo,
                 remark
         );
 
@@ -103,6 +147,8 @@ public class StockServiceImpl implements StockService {
         updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
         // 执行SQL：stock = stock - qty
         updateStockWrapper.setSql("stock = stock - " + qty);
+        updateStockWrapper.set(InventoryStock::getLastReceiptTime, LocalDateTime.now());
+        updateStockWrapper.set(InventoryStock::getOperateType, 2);
         inventoryStockMapper.update(null, updateStockWrapper);
 
         // ===================== 3. 记录库存流水 =====================
@@ -117,6 +163,42 @@ public class StockServiceImpl implements StockService {
                 stock.getStock() - qty,
                 operateType,
                 null,
+                remark
+        );
+
+        // ===================== 4. 刷新库存状态 =====================
+        refreshStatus(goodsId);
+    }
+
+    @Override
+    public void decreaseStockFlow(Long goodsId, Integer qty, String receiptNo) {
+        // ===================== 1. 查询当前库存信息 =====================
+        LambdaQueryWrapper<InventoryStock> queryStockWrapper = new LambdaQueryWrapper<>();
+        queryStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        InventoryStock stock = inventoryStockMapper.selectOne(queryStockWrapper);
+
+        // ===================== 2. 执行库存扣减 =====================
+        LambdaUpdateWrapper<InventoryStock> updateStockWrapper = new LambdaUpdateWrapper<>();
+        updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        // 执行SQL：stock = stock - qty
+        updateStockWrapper.setSql("stock = stock - " + qty);
+        updateStockWrapper.set(InventoryStock::getLastReceiptTime, LocalDateTime.now());
+        updateStockWrapper.set(InventoryStock::getOperateType, 2);
+        updateStockWrapper.set(InventoryStock::getLockStock, stock.getLockStock() - qty);
+        inventoryStockMapper.update(null, updateStockWrapper);
+
+        // ===================== 3. 记录库存流水 =====================
+        // 操作类型：2=出库扣减库存，变动数量为负数
+        Integer operateType = 2;
+        String remark = "出库扣减库存";
+        writeFlow(
+                goodsId,
+                stock.getGoodsName(),
+                stock.getStock(),
+                -qty,
+                stock.getStock() - qty,
+                operateType,
+                receiptNo,
                 remark
         );
 

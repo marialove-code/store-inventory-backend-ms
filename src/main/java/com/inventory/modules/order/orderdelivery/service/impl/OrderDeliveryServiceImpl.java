@@ -8,12 +8,18 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.inventory.common.enums.OrderStatusEnum;
 import com.inventory.common.response.Result;
+import com.inventory.modules.goods.product.entity.GoodsProduct;
+import com.inventory.modules.goods.product.mapper.GoodsProductMapper;
+import com.inventory.modules.invertory.stock.entity.InventoryStock;
+import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
 import com.inventory.modules.invertory.stock.service.StockService;
 import com.inventory.modules.order.orderdelivery.dto.OrderDeliveryDTO;
 import com.inventory.modules.order.orderdelivery.entity.OrderDelivery;
 import com.inventory.modules.order.orderdelivery.service.OrderDeliveryService;
 import com.inventory.modules.order.orderdelivery.mapper.OrderDeliveryMapper;
 import com.inventory.modules.order.orderdelivery.vo.OrderDeliveryVO;
+import com.inventory.modules.order.orderinfo.entity.OrderInfo;
+import com.inventory.modules.order.orderinfo.mapper.OrderInfoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +48,20 @@ public class OrderDeliveryServiceImpl extends ServiceImpl<OrderDeliveryMapper, O
      * 订单发货 Mapper
      */
     private final OrderDeliveryMapper orderDeliveryMapper;
+
+    /**
+     * 订单 Mapper
+     */
+    private final OrderInfoMapper orderInfoMapper;
+
+    /**
+     * 商品 Mapper
+     */
+    private final GoodsProductMapper  goodsProductMapper;
+    /**
+     * 库存 Mapper
+     */
+    private final InventoryStockMapper inventoryStockMapper;
 
     /**
      * 库存核心服务（发货时扣减库存）
@@ -81,9 +101,6 @@ public class OrderDeliveryServiceImpl extends ServiceImpl<OrderDeliveryMapper, O
 
         // ===================== 3. 构建查询条件 =====================
         LambdaQueryWrapper<OrderDelivery> wrapper = Wrappers.lambdaQuery();
-
-        // 4. 只查询已支付订单（待发货）
-        wrapper.eq(OrderDelivery::getOrderStatus, OrderStatusEnum.PAID.getCode());
 
         // 5. 订单号模糊匹配
         if (StrUtil.isNotBlank(orderNo)) {
@@ -149,46 +166,50 @@ public class OrderDeliveryServiceImpl extends ServiceImpl<OrderDeliveryMapper, O
      * 订单确认发货
      * 逻辑：
      * 1. 校验订单是否存在
-     * 2. 仅允许【已支付】订单发货
-     * 3. 调用库存服务扣减真实库存
-     * 4. 更新订单为【已发货】状态
-     * 5. 记录物流单号、备注、更新时间
+     * 2. 仅允许【待发货】订单发货
+     * 3. 扣减真实库存（lockStock - 数量，stock - 数量）
+     * 4. 更新【发货表】为【已发货】状态
+     * 5. 更新【主订单表】为【已发货】状态
+     * 6. 记录物流单号、备注
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<?> confirmDelivery(Long id, OrderDeliveryDTO dto) {
-        // 1. 根据ID查询订单
-        OrderDelivery order = getById(id);
-
-        // 2. 订单不存在判断
-        if (order == null) {
-            return Result.fail("订单不存在");
+        // 1. 查询【发货单】
+        OrderDelivery deliveryOrder = getById(id);
+        if (deliveryOrder == null) {
+            return Result.fail("发货单不存在");
         }
 
-        // 3. 仅已支付订单可以发货
-        Integer paidCode = OrderStatusEnum.PAID.getCode();
-        Integer orderStatus = order.getOrderStatus();
-        if (!paidCode.equals(orderStatus)) {
-            return Result.fail("仅【已支付】订单可以发货");
+        // 2. 只能【待发货】才能发货
+        if (!OrderStatusEnum.PAID.getCode().equals(deliveryOrder.getOrderStatus())) {
+            return Result.fail("仅【待发货】订单可以发货");
         }
 
-        // ===================== 4. 扣减真实库存（最终业务闭环） =====================
-        stockService.decreaseStock(order.getGoodsId(), order.getBuyQty());
+        // ===================== 3. 扣减真实库存（最终业务闭环） =====================
+        stockService.decreaseStockFlow(deliveryOrder.getGoodsId(), deliveryOrder.getBuyQty(),dto.getLogisticsNo());
 
-        // 5. 设置发货信息
-        order.setLogisticsNo(dto.getLogisticsNo());
-        order.setRemark(dto.getRemark());
+        // ===================== 4. 更新【发货表】→ 已发货 =====================
+        deliveryOrder.setLogisticsNo(dto.getLogisticsNo());
+        deliveryOrder.setRemark(dto.getRemark());
+        deliveryOrder.setOrderStatus(OrderStatusEnum.SHIPPED.getCode()); // 2
+        deliveryOrder.setUpdateTime(LocalDateTime.now());
+        updateById(deliveryOrder); // 更新发货表
 
-        // 6. 更新订单状态为【已发货】
-        order.setOrderStatus(OrderStatusEnum.SHIPPED.getCode());
+        // ===================== 5. 更新【主订单表 order_info】→ 已发货（你要的关键！） =====================
+        // 根据 orderNo 查询主订单
+        OrderInfo orderInfo = orderInfoMapper.selectOne(
+                Wrappers.lambdaQuery(OrderInfo.class)
+                        .eq(OrderInfo::getOrderNo, deliveryOrder.getOrderNo())
+        );
+        if (orderInfo != null) {
+            orderInfo.setOrderStatus(OrderStatusEnum.SHIPPED.getCode()); // 主订单 → 2 已发货
+            orderInfo.setLogisticsNo(dto.getLogisticsNo());
+            orderInfo.setUpdateTime(LocalDateTime.now());
+            orderInfoMapper.updateById(orderInfo);
+        }
 
-        // 7. 更新时间
-        order.setUpdateTime(LocalDateTime.now());
-
-        // 8. 执行更新
-        updateById(order);
-
-        return Result.success("发货成功，库存已扣减");
+        return Result.success("发货成功，订单已同步更新为【已发货】");
     }
 
 }

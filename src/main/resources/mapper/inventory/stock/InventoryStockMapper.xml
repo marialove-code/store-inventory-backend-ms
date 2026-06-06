@@ -16,11 +16,15 @@
             <result property="sort" column="sort" />
             <result property="createTime" column="create_time" />
             <result property="updateTime" column="update_time" />
+            <result property="lastReceiptTime" column="last_receipt_time" />
+            <result property="operateType" column="operate_type" />
+
+
     </resultMap>
 
     <sql id="Base_Column_List">
         id,goods_id,goods_name,category_name,stock,lock_stock,
-        stock_warn,stock_status,sort,create_time,update_time
+        stock_warn,stock_status,sort,create_time,update_time,last_receipt_time,operate_type
     </sql>
 
 

@@ -3,12 +3,16 @@ package com.inventory.modules.order.orderrefund.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.inventory.common.enums.OrderStatusEnum;
 import com.inventory.common.enums.RefundStatusEnum;
 import com.inventory.common.response.Result;
 import com.inventory.modules.invertory.stock.service.StockService;
+import com.inventory.modules.order.orderdelivery.entity.OrderDelivery;
+import com.inventory.modules.order.orderdelivery.mapper.OrderDeliveryMapper;
 import com.inventory.modules.order.orderinfo.entity.OrderInfo;
 import com.inventory.modules.order.orderinfo.mapper.OrderInfoMapper;
 import com.inventory.modules.order.orderrefund.dto.OrderRefundApplyDTO;
@@ -43,6 +47,11 @@ public class OrderRefundServiceImpl extends ServiceImpl<OrderRefundMapper, Order
      * 退款单 Mapper
      */
     private final OrderRefundMapper orderRefundMapper;
+
+    /**
+     * 发货管理
+     */
+    private final OrderDeliveryMapper orderDeliveryMapper;
 
     /**
      * 订单 Mapper（查询原订单信息）
@@ -134,36 +143,62 @@ public class OrderRefundServiceImpl extends ServiceImpl<OrderRefundMapper, Order
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<?> applyRefund(OrderRefundApplyDTO dto) {
-        // 1. 查询原订单
         OrderInfo order = orderInfoMapper.selectById(dto.getOrderId());
         if (order == null) {
             return Result.fail("原订单不存在");
         }
 
-        // 2. 构建退款单实体
+        Integer status = order.getOrderStatus();
+        Integer paid = OrderStatusEnum.PAID.getCode();
+        Integer shipped = OrderStatusEnum.SHIPPED.getCode();
+        Integer completed = OrderStatusEnum.COMPLETED.getCode();
+
+        if (!status.equals(paid) && !status.equals(shipped) && !status.equals(completed)) {
+            return Result.fail("当前订单状态不支持退款");
+        }
+
         OrderRefund refund = new OrderRefund();
         BeanUtil.copyProperties(dto, refund);
 
-        // 3. 从原订单自动填充信息
         refund.setOrderNo(order.getOrderNo());
         refund.setUserName(order.getUserName());
         refund.setGoodsName(order.getGoodsName());
 
-        // 4. 未填写退款金额 → 默认使用订单总金额
         if (refund.getRefundAmount() == null) {
             refund.setRefundAmount(order.getOrderAmount());
         }
 
-        // 5. 设置退款状态：待审核
+        // ====================== 关键：保存原始状态 ======================
+        refund.setOriginalOrderStatus(order.getOrderStatus()); // 订单原始状态
+        refund.setOriginalDeliveryStatus(getCurrentDeliveryStatus(order.getOrderNo())); // 发货单原始状态
+
         refund.setRefundStatus(RefundStatusEnum.PENDING.getCode());
         refund.setApplyTime(LocalDateTime.now());
         refund.setCreateTime(LocalDateTime.now());
         refund.setUpdateTime(LocalDateTime.now());
 
-        // 6. 保存退款单
         save(refund);
 
+        // 更新订单为退款中
+        order.setOrderStatus(OrderStatusEnum.REFUNDING.getCode());
+        order.setUpdateTime(LocalDateTime.now());
+        orderInfoMapper.updateById(order);
+
+        // 更新发货单为退款中
+        LambdaUpdateWrapper<OrderDelivery> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(OrderDelivery::getOrderNo, order.getOrderNo())
+                .set(OrderDelivery::getOrderStatus, 4);
+        orderDeliveryMapper.update(null, wrapper);
+
         return Result.success("退款申请已提交");
+    }
+
+    // 工具方法：获取当前发货单状态
+    private Integer getCurrentDeliveryStatus(String orderNo) {
+        LambdaQueryWrapper<OrderDelivery> qw = new LambdaQueryWrapper<>();
+        qw.eq(OrderDelivery::getOrderNo, orderNo);
+        OrderDelivery delivery = orderDeliveryMapper.selectOne(qw);
+        return delivery == null ? 1 : delivery.getOrderStatus();
     }
 
     // ======================== 3. 管理员审核退款：通过 ========================
@@ -235,27 +270,36 @@ public class OrderRefundServiceImpl extends ServiceImpl<OrderRefundMapper, Order
 
         // 2. 仅待审核可拒绝
         Integer pendingCode = RefundStatusEnum.PENDING.getCode();
-        Integer currentStatus = refund.getRefundStatus();
-
-        if (!pendingCode.equals(currentStatus)) {
+        if (!pendingCode.equals(refund.getRefundStatus())) {
             return Result.fail("仅待审核的退款单可拒绝");
         }
 
-        // 3. 更新为已拒绝状态
+        // 3. 拒绝退款
         refund.setRefundStatus(RefundStatusEnum.REJECTED.getCode());
-
-        // 4. 填写拒绝备注
-        if (dto != null) {
-            String remark = dto.getRemark();
-            if (StrUtil.isNotBlank(remark)) {
-                refund.setAuditRemark(remark);
-            }
+        if (dto != null && StrUtil.isNotBlank(dto.getRemark())) {
+            refund.setAuditRemark(dto.getRemark());
         }
-
-        // 5. 更新时间
         refund.setUpdateTime(LocalDateTime.now());
         updateById(refund);
 
-        return Result.success("已拒绝退款");
+        // ====================== 关键：还原订单状态 ======================
+        String orderNo = refund.getOrderNo();
+        Integer originalOrderStatus = refund.getOriginalOrderStatus();
+        Integer originalDeliveryStatus = refund.getOriginalDeliveryStatus();
+
+        // 还原订单
+        LambdaUpdateWrapper<OrderInfo> orderUpdate = new LambdaUpdateWrapper<>();
+        orderUpdate.eq(OrderInfo::getOrderNo, orderNo)
+                .set(OrderInfo::getOrderStatus, originalOrderStatus)
+                .set(OrderInfo::getUpdateTime, LocalDateTime.now());
+        orderInfoMapper.update(null, orderUpdate);
+
+        // 还原发货单
+        LambdaUpdateWrapper<OrderDelivery> deliveryUpdate = new LambdaUpdateWrapper<>();
+        deliveryUpdate.eq(OrderDelivery::getOrderNo, orderNo)
+                .set(OrderDelivery::getOrderStatus, originalDeliveryStatus);
+        orderDeliveryMapper.update(null, deliveryUpdate);
+
+        return Result.success("已拒绝退款，订单状态已还原");
     }
 }

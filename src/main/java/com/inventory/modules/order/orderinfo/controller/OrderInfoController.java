@@ -80,6 +80,19 @@ public class OrderInfoController {
         return orderInfoService.payOrder(id);
     }
 
+
+    /**
+     * 确认支付（仅待支付订单）
+     * 权限：order:info:pay
+     * @param id 订单主键ID
+     * @return 支付结果
+     */
+    @PutMapping("/{id}/receive")
+    @PreAuthorize("hasAuthority('order:info:receive')")
+    public Result<?> receive(@NotNull(message = "订单ID不能为空") @PathVariable Long id) {
+        return orderInfoService.receiveOrder(id);
+    }
+
     /**
      * 取消订单（待支付、已支付订单）
      * 权限：order:info:cancel

@@ -41,6 +41,8 @@ public class SecurityConfig {
             "/auth/refreshToken",
             // 这里改掉
             "/upload/avatar/**",
+            "/upload/product/**",
+            "/upload/brand/**",
 
             "/doc.html",
             "/swagger-ui/**",
