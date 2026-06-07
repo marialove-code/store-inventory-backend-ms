@@ -66,23 +66,22 @@ logging:
     # 打印 MyBatis SQL 日志
     com.inventory.mapper: debug
 
-# ====================== 自定义应用配置 ======================
-#      - https://nestparts.top
-#   - https://www.nestparts.top
+# ====================== 生产环境自定义应用配置 ======================
 app:
-  # 跨域配置
+  # 跨域访问配置
   cors:
-    # 允许访问的前端地址
-    allowed-origins: https://www.nestparts.top
-  # 文件上传配置
+    # 生产环境允许跨域的前端域名（多个用英文逗号分隔）
+    allowed-origins: https://www.nestparts.top,https://nestparts.top
+
+  # 文件上传本地存储 & 访问路径配置
   upload:
-    # 头像上传存储路径（服务器本地目录）
+    # 头像图片 - 服务器本地存储路径
     avatar-path: /opt/upload/avatar/
-    # 商品图片上传存储路径（服务器本地目录） → 【新增】
+    # 商品图片 - 服务器本地存储路径
     product-image-path: /opt/upload/product/
-    # 商品图片访问前缀 → 【新增】
-    product-image-prefix: http://120.53.88.204/uploads/product/
-    # 品牌图片上传存储路径（服务器本地目录） → 【新增】
-    brand-image-path: file:E:/Image/upload/brand/
-    # 品牌图片访问前缀
-    brand-image-prefix: http://localhost:5173/uploads/brand/
+    # 商品图片 - 对外访问URL前缀
+    product-image-prefix: https://www.nestparts.top/uploads/product/
+    # 品牌图片 - 服务器本地存储路径
+    brand-image-path: /opt/upload/brand/
+    # 品牌图片 - 对外访问URL前缀
+    brand-image-prefix: https://www.nestparts.top/uploads/brand/
