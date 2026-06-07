@@ -1,6 +1,7 @@
 package com.inventory.modules.invertory.stockout.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.invertory.stockout.dto.StockOutAddDTO;
 import com.inventory.modules.invertory.stockout.service.InventoryOutService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class InventoryOutController {
      * 请求参数：均为非必填，前端可根据筛选条件传递
      */
     @GetMapping("/list")
+    @RequiresPerm("inventory:stockout:list")
     public Result<?> list(
             @RequestParam(required = false) String outboundNo,   // 出库单号（精准匹配）
             @RequestParam(required = false) String goodsName,    // 商品名称（模糊匹配）
@@ -49,6 +51,7 @@ public class InventoryOutController {
      * 请求体：StockOutAddDTO（已做参数校验）
      */
     @PostMapping
+    @RequiresPerm("inventory:stockout:add")
     public Result<?> add(@RequestBody StockOutAddDTO dto) {
         return stockOutService.addStockOut(dto);
     }

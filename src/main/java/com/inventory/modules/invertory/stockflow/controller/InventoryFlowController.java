@@ -1,6 +1,7 @@
 package com.inventory.modules.invertory.stockflow.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.invertory.stockflow.dto.InventoryFlowQueryDTO;
 import com.inventory.modules.invertory.stockflow.service.InventoryFlowService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +30,7 @@ public class InventoryFlowController {
      * 权限：inventory:flow:list
      */
     @GetMapping("/list")
+    @RequiresPerm("inventory:flow:list")
     public Result<?> list(
             @RequestParam(required = false) String goodsName,
             @RequestParam(required = false) String operateType,
@@ -53,6 +55,7 @@ public class InventoryFlowController {
      * 权限：inventory:flow:export
      */
     @PostMapping("/export")
+    @RequiresPerm("inventory:flow:export")
     public void export(@RequestBody InventoryFlowQueryDTO queryDTO, HttpServletResponse response) throws IOException {
         inventoryFlowService.exportFlowList(queryDTO, response);
     }

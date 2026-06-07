@@ -1,6 +1,7 @@
 package com.inventory.modules.invertory.stockin.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.invertory.stockin.dto.StockInAddDTO;
 import com.inventory.modules.invertory.stockin.service.InventoryInService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class InventoryStockInController {
      * 请求参数：均为非必填，前端可根据筛选条件传递
      */
     @GetMapping("/list")
+    @RequiresPerm("inventory:stockin:list")
     public Result<?> list(
             @RequestParam(required = false) String receiptNo,    // 入库单号（精准匹配）
             @RequestParam(required = false) String goodsName,   // 商品名称（模糊匹配）
@@ -50,6 +52,7 @@ public class InventoryStockInController {
      * 请求体：StockInAddDTO（已做参数校验）
      */
     @PostMapping
+    @RequiresPerm("inventory:stockin:add")
     public Result<?> add(@RequestBody StockInAddDTO dto) {
         return stockInService.addStockIn(dto);
     }

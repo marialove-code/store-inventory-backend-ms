@@ -1,6 +1,7 @@
 package com.inventory.modules.invertory.stock.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.invertory.stock.dto.StockWarnDTO;
 import com.inventory.modules.invertory.stock.service.InventoryStockService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class StockController {
      * 筛选条件：商品名称、商品分类名称、库存状态
      */
     @GetMapping("/list")
+    @RequiresPerm("inventory:stock:list")
     public Result<?> list(
             @RequestParam(required = false) String goodsName,
             @RequestParam(required = false) String categoryName,
@@ -42,6 +44,7 @@ public class StockController {
      * @param dto 预警阈值参数
      */
     @PutMapping("/list/{id}/stockWarn")
+    @RequiresPerm("inventory:stock:edit")
     public Result<?> editStockWarn(@PathVariable String id, @RequestBody StockWarnDTO dto) {
         return stockService.updateStockWarn(id, dto);
     }

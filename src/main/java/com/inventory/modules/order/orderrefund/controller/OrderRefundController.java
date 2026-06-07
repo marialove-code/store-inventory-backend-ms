@@ -1,11 +1,11 @@
 package com.inventory.modules.order.orderrefund.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.order.orderrefund.dto.OrderRefundApplyDTO;
 import com.inventory.modules.order.orderrefund.dto.OrderRefundDTO;
 import com.inventory.modules.order.orderrefund.service.OrderRefundService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -23,7 +23,7 @@ public class OrderRefundController {
      * 权限：order:refund:list
      */
     @GetMapping("/list")
-    @PreAuthorize("hasAuthority('order:refund:list')")
+    @RequiresPerm("order:refund:list")
     public Result<?> list(
             @RequestParam(defaultValue = "1") Long pageNum,
             @RequestParam(defaultValue = "10") Long pageSize,
@@ -34,13 +34,12 @@ public class OrderRefundController {
         return orderRefundService.pageRefundList(pageNum, pageSize, orderNo, refundStatus, startTime, endTime);
     }
 
-
     /**
      * 发起退款申请
      * 权限：order:refund:apply
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('order:refund:apply')")
+    @RequiresPerm("order:refund:apply")
     public Result<?> apply(@RequestBody OrderRefundApplyDTO dto) {
         return orderRefundService.applyRefund(dto);
     }
@@ -50,7 +49,7 @@ public class OrderRefundController {
      * 权限：order:refund:approve
      */
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasAuthority('order:refund:approve')")
+    @RequiresPerm("order:refund:approve")
     public Result<?> approve(@PathVariable Long id, @RequestBody(required = false) OrderRefundDTO dto) {
         return orderRefundService.approveRefund(id, dto);
     }
@@ -60,7 +59,7 @@ public class OrderRefundController {
      * 权限：order:refund:reject
      */
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasAuthority('order:refund:reject')")
+    @RequiresPerm("order:refund:reject")
     public Result<?> reject(@PathVariable Long id, @RequestBody(required = false) OrderRefundDTO dto) {
         return orderRefundService.rejectRefund(id, dto);
     }

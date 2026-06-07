@@ -1,6 +1,7 @@
 package com.inventory.modules.invertory.stockwarn.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.invertory.stockwarn.dto.StockWarnDTO;
 import com.inventory.modules.invertory.stockwarn.service.InventoryWarnService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class InventoryWarnController {
      * 权限：inventory:warn:list
      */
     @GetMapping("/list")
+    @RequiresPerm("inventory:warn:list")
     public Result<?> list(
             @RequestParam(required = false) String goodsName,
             @RequestParam(defaultValue = "1") Long pageNum,
@@ -41,6 +43,7 @@ public class InventoryWarnController {
      * 权限：inventory:warn:detail
      */
     @GetMapping("/{id}")
+    @RequiresPerm("inventory:warn:list")
     public Result<?> detail(@PathVariable String id) {
         return inventoryWarnService.getWarnDetail(id);
     }
@@ -52,6 +55,7 @@ public class InventoryWarnController {
      * 权限：inventory:warn:edit
      */
     @PutMapping("/{id}/stockWarn")
+    @RequiresPerm("inventory:warn:edit")
     public Result<?> editStockWarn(
             @PathVariable String id,
             @RequestBody StockWarnDTO dto

@@ -1,6 +1,7 @@
 package com.inventory.modules.goods.brand.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.goods.brand.dto.GoodsBrandDTO;
 import com.inventory.modules.goods.brand.service.GoodsBrandService;
 import jakarta.validation.Valid;
@@ -25,6 +26,7 @@ public class GoodsBrandController {
      * 分页列表
      */
     @GetMapping("/list")
+    @RequiresPerm("goods:brand:list")
     public Result<?> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Long pageNum,
@@ -45,6 +47,7 @@ public class GoodsBrandController {
      * 新增品牌
      */
     @PostMapping
+    @RequiresPerm("goods:brand:add")
     public Result<?> add(@Valid @RequestBody GoodsBrandDTO dto) {
         return goodsBrandService.add(dto);
     }
@@ -53,6 +56,7 @@ public class GoodsBrandController {
      * 修改品牌
      */
     @PutMapping("/{id}")
+    @RequiresPerm("goods:brand:edit")
     public Result<?> update(
             @PathVariable String id,
             @Valid @RequestBody GoodsBrandDTO dto
@@ -64,6 +68,7 @@ public class GoodsBrandController {
      * 删除品牌
      */
     @DeleteMapping("/{id}")
+    @RequiresPerm("goods:brand:delete")
     public Result<?> delete(@PathVariable String id) {
         return goodsBrandService.delete(id);
     }
@@ -72,6 +77,7 @@ public class GoodsBrandController {
      * 批量删除
      */
     @DeleteMapping("/batch")
+    @RequiresPerm("goods:brand:batchDelete")
     public Result<?> batchDelete(@RequestBody List<String> ids) {
         return goodsBrandService.batchDelete(ids);
     }
@@ -80,6 +86,7 @@ public class GoodsBrandController {
      * 状态修改
      */
     @PutMapping("/{id}/status")
+    @RequiresPerm("goods:brand:changeStatus")
     public Result<?> updateStatus(
             @PathVariable String id,
             @RequestParam Integer status
@@ -91,6 +98,7 @@ public class GoodsBrandController {
      * 上传logo
      */
     @PostMapping("/uploadLogo")
+    @RequiresPerm("goods:brand:edit")
     public Result<?> uploadLogo(@RequestParam("file") MultipartFile file) {
         return goodsBrandService.uploadLogo(file);
     }
