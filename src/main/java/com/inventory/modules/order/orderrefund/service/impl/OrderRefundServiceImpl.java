@@ -227,19 +227,24 @@ public class OrderRefundServiceImpl extends ServiceImpl<OrderRefundMapper, Order
             return Result.fail("仅待审核的退款单可通过");
         }
 
-        // 3. 查询原订单（获取商品ID、购买数量）
+        // 3. 查询原订单
         OrderInfo order = orderInfoMapper.selectById(refund.getOrderId());
         if (order == null) {
             return Result.fail("关联订单不存在");
         }
 
-        // ===================== 4. 核心：退货入库，增加可用库存 =====================
+        // ===================== 4. 退货入库，增加可用库存 =====================
         stockService.increaseStock(order.getGoodsId(), order.getBuyQty());
 
-        // 5. 更新为审核通过状态
+        // ===================== 5. 订单状态改为 5 = 退款完成（按你要求） =====================
+        order.setOrderStatus(5);
+        order.setUpdateTime(LocalDateTime.now());
+        orderInfoMapper.updateById(order);
+
+        // 6. 更新退款单为审核通过
         refund.setRefundStatus(RefundStatusEnum.APPROVED.getCode());
 
-        // 6. 填写审核备注
+        // 7. 审核备注
         if (dto != null) {
             String remark = dto.getRemark();
             if (StrUtil.isNotBlank(remark)) {
@@ -247,11 +252,10 @@ public class OrderRefundServiceImpl extends ServiceImpl<OrderRefundMapper, Order
             }
         }
 
-        // 7. 更新时间
         refund.setUpdateTime(LocalDateTime.now());
         updateById(refund);
 
-        return Result.success("审核通过，商品已退回库存");
+        return Result.success("退款审核通过，库存已恢复，订单状态已更新为【退款完成】");
     }
 
     // ======================== 4. 管理员审核退款：拒绝 ========================

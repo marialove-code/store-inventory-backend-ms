@@ -11,9 +11,9 @@ public enum OrderStatusEnum {
     PAID(1, "待发货"),
     SHIPPED(2, "已发货"),
     COMPLETED(3, "已收货"),
-    CANCELED(4, "已取消"),
-    REFUNDING(5, "退款中"),  // 新增
-    REFUNDED(6, "退款成功");   // 新增
+    REFUNDING(4, "退款中"),
+    REFUNDED(5, "退款完成"),
+    CANCELED(6, "已取消");  // 新增
 
 
     private final Integer code;

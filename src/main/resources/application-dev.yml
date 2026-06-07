@@ -69,15 +69,20 @@ logging:
 
 # ====================== 自定义应用配置 ======================
 app:
+  # 跨域访问配置
   cors:
+    # 本地环境允许跨域的前端地址
     allowed-origins: http://localhost:5173
+
+  # 文件上传本地存储 & 访问路径配置
   upload:
-    avatar-path: file:E:/Image/upload/avatar/
-    # 商品图片上传存储路径（服务器本地目录） → 【新增】
-    product-image-path: file:E:/Image/upload/head/
-    # 商品图片访问前缀 → 【新增】
-    product-image-prefix: http://localhost:5173/uploads/product/
-    # 品牌图片上传存储路径（服务器本地目录） → 【新增】
-    brand-image-path: file:E:/Image/upload/brand/
-    # 品牌图片访问前缀
-    brand-image-prefix: http://localhost:5173/uploads/brand/
+    # 头像图片 - 本地存储路径
+    avatar-path: E:/Image/upload/avatar/
+    # 商品图片 - 本地存储路径
+    product-image-path: E:/Image/upload/product/
+    # 商品图片 - 本地访问前缀
+    product-image-prefix: /upload/product/
+    # 品牌图片 - 本地存储路径
+    brand-image-path: E:/Image/upload/brand/
+    # 品牌图片 - 本地访问前缀
+    brand-image-prefix: /upload/brand/
