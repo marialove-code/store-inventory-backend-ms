@@ -80,8 +80,8 @@ app:
     # 商品图片 - 服务器本地存储路径
     product-image-path: /opt/upload/product/
     # 商品图片 - 对外访问URL前缀
-    product-image-prefix: https://www.nestparts.top/uploads/product/
+    product-image-prefix: https://www.nestparts.top/upload/product/
     # 品牌图片 - 服务器本地存储路径
     brand-image-path: /opt/upload/brand/
     # 品牌图片 - 对外访问URL前缀
-    brand-image-prefix: https://www.nestparts.top/uploads/brand/
+    brand-image-prefix: https://www.nestparts.top/upload/brand/

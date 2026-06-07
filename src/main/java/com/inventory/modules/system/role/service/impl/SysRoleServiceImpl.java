@@ -204,7 +204,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
         batchKickOffline(userIds);
         // 删除关联数据与角色
         rolePermissionMapper.deleteByRoleId(Long.valueOf(id));
-        this.removeById(id);
+        this.removeById(Long.valueOf(id));
 
         return Result.success();
 

@@ -80,7 +80,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-          /*  // 免过滤路径：上传头像接口直接放行，不做JWT校验
+            // 免过滤路径：上传头像接口直接放行，不做JWT校验
             if (requestURI.startsWith("/api/upload/product/")) {
                 filterChain.doFilter(request, response);
                 return;
@@ -89,7 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (requestURI.startsWith("/api/upload/brand/")) {
                 filterChain.doFilter(request, response);
                 return;
-            }*/
+            }
 
             // 1. 从请求头获取token
             String token = request.getHeader(header);
