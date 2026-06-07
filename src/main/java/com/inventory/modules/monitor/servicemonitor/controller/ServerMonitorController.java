@@ -1,5 +1,6 @@
 package com.inventory.modules.monitor.servicemonitor.controller;
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.monitor.servicemonitor.service.ServerMonitorService;
 import com.inventory.modules.monitor.servicemonitor.vo.ServerMonitorVo;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class ServerMonitorController {
      * 获取服务监控信息
      */
     @GetMapping
+    @RequiresPerm("monitor:server:view")
     public Result<ServerMonitorVo> getInfo() {
 
         return Result.success(

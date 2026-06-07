@@ -115,7 +115,7 @@ public class SysRoleController {
      * 修改角色状态（启用/禁用）
      */
     @PutMapping("/{id}/status")
-    @RequiresPerm("system:role:status")
+    @RequiresPerm("system:role:changeStatus")
     public Result<Void> updateStatus(
             @PathVariable String id,
             @RequestParam Integer status

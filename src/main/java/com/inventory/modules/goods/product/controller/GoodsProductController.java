@@ -1,6 +1,7 @@
 package com.inventory.modules.goods.product.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.goods.product.dto.BatchShelfDTO;
 import com.inventory.modules.goods.product.dto.GoodsProductDTO;
 import com.inventory.modules.goods.product.service.GoodsProductService;
@@ -30,6 +31,7 @@ public class GoodsProductController {
      * 支持：关键词、分类、品牌、状态、价格区间、编码筛选
      */
     @GetMapping("/list")
+    @RequiresPerm("goods:product:list")
     public Result<?> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String categoryId,
@@ -50,6 +52,7 @@ public class GoodsProductController {
      * 新增商品
      */
     @PostMapping
+    @RequiresPerm("goods:product:add")
     public Result<?> add(@RequestBody GoodsProductDTO dto) {
         return goodsProductService.addProduct(dto);
     }
@@ -60,6 +63,7 @@ public class GoodsProductController {
      * @param dto 商品修改参数
      */
     @PutMapping("/{id}")
+    @RequiresPerm("goods:product:edit")
     public Result<?> edit(@PathVariable String id, @RequestBody GoodsProductDTO dto) {
         return goodsProductService.updateProduct(id, dto);
     }
@@ -68,6 +72,7 @@ public class GoodsProductController {
      * 删除单个商品（逻辑删除）
      */
     @DeleteMapping("/{id}")
+    @RequiresPerm("goods:product:delete")
     public Result<?> remove(@PathVariable String id) {
         return goodsProductService.deleteProduct(id);
     }
@@ -76,6 +81,7 @@ public class GoodsProductController {
      * 批量删除商品
      */
     @DeleteMapping("/batch")
+    @RequiresPerm("goods:product:batchDelete")
     public Result<?> batchRemove(@RequestBody List<String> ids) {
         return goodsProductService.batchDeleteProduct(ids);
     }
@@ -85,6 +91,7 @@ public class GoodsProductController {
      * @param shelfStatus 1上架 0下架
      */
     @PutMapping("/{id}/shelf")
+    @RequiresPerm("goods:product:changeShelf")
     public Result<?> shelf(
             @PathVariable String id,
             @RequestParam Integer shelfStatus
@@ -96,6 +103,7 @@ public class GoodsProductController {
      * 批量上下架
      */
     @PutMapping("/batch/shelf")
+    @RequiresPerm("goods:product:batchShelf")
     public Result<?> batchShelf(@RequestBody BatchShelfDTO dto) {
         return goodsProductService.batchUpdateShelfStatus(dto.getIds(), dto.getShelfStatus());
     }
@@ -104,6 +112,7 @@ public class GoodsProductController {
      * 商品图片上传
      */
     @PostMapping("/uploadImage")
+    @RequiresPerm("goods:product:edit")
     public Result<?> upload(@RequestParam("file") MultipartFile file) {
         return goodsProductService.uploadImage(file);
     }

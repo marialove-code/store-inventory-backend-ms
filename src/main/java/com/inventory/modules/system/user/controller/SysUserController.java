@@ -44,11 +44,13 @@ public class SysUserController {
     }
 
     @GetMapping("/user/{id}")
+    @RequiresPerm("system:user:edit")
     public Result<SysUser> getUserById(@PathVariable String id) {
         return Result.success(sysUserService.getUserById(id));
     }
 
     @PutMapping("/user/{id}")
+    @RequiresPerm("system:user:edit")
     @OperationLog(title = "修改用户", type = OperationTypeEnum.UPDATE)
     public Result<Void> updateUser(@PathVariable String id, @RequestBody SysUser dto) {
         sysUserService.updateUser(id, dto);
@@ -78,7 +80,7 @@ public class SysUserController {
     }
 
     @DeleteMapping("/batch")
-    @RequiresPerm("system:user:delete")
+    @RequiresPerm("system:user:batchDelete")
     @OperationLog(title = "批量删除", type = OperationTypeEnum.DELETE)
     public Result<Void> batchDelete(@RequestBody List<Long> ids) {
         return sysUserService.batchRemoveUser(ids);
@@ -90,6 +92,7 @@ public class SysUserController {
      * 用于分配角色弹窗的回显
      */
     @GetMapping("/{userId}/roleIds")
+    @RequiresPerm("system:user:assign")
     public Result<List<Long>> getUserRoleIds(@PathVariable Long userId) {
         return Result.success(sysUserService.getUserRoleIds(userId));
     }
@@ -98,6 +101,7 @@ public class SysUserController {
      * 保存用户的角色分配
      */
     @PostMapping("/{userId}/role")
+    @RequiresPerm("system:user:assign")
     public Result<Void> saveUserRole(
             @PathVariable Long userId,
             @RequestBody List<Long> roleIds

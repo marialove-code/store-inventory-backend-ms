@@ -185,7 +185,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     @Transactional(rollbackFor = Exception.class)  // 👈 加这个
     public Result<Void> removeRoleById(String id) {
         String msg = null;
-        SysRole role = this.getById(id);
+        SysRole role = this.getById(Long.valueOf(id));
 
         if (role == null) {
             msg = "角色不存在";

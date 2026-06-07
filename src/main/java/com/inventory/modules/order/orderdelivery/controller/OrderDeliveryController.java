@@ -1,10 +1,10 @@
 package com.inventory.modules.order.orderdelivery.controller;
 
 import com.inventory.common.response.Result;
+import com.inventory.framework.security.permission.annotation.RequiresPerm;
 import com.inventory.modules.order.orderdelivery.dto.OrderDeliveryDTO;
 import com.inventory.modules.order.orderdelivery.service.OrderDeliveryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -25,7 +25,7 @@ public class OrderDeliveryController {
      * 权限：order:delivery:list
      */
     @GetMapping("/list")
-    @PreAuthorize("hasAuthority('order:delivery:list')")
+    @RequiresPerm("order:delivery:list")
     public Result<?> list(
             @RequestParam(defaultValue = "1") Long pageNum,
             @RequestParam(defaultValue = "10") Long pageSize,
@@ -37,10 +37,10 @@ public class OrderDeliveryController {
 
     /**
      * 确认发货
-     * 权限：order:delivery:deliver
+     * 权限：order:delivery:delivery
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('order:delivery:deliver')")
+    @RequiresPerm("order:delivery:delivery")
     public Result<?> deliver(
             @PathVariable Long id,
             @RequestBody OrderDeliveryDTO dto) {
