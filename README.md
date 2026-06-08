@@ -3,7 +3,7 @@
 > 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，逐步完善为 V1.0。  
 > 开源仅供**技术交流、学习展示**，自用项目。
 
-[![Version](https://img.shields.io/badge/Version-v1.0.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/Version-V1.0-blue.svg)](#)
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
