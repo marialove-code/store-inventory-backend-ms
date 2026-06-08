@@ -19,6 +19,7 @@ import com.inventory.modules.system.log.service.SysLoginLogService;
 import com.inventory.modules.system.permission.entity.SysUserRole;
 import com.inventory.modules.auth.dto.SysUserLoginDTO;
 import com.inventory.modules.auth.dto.SysUserRegisterDTO;
+import com.inventory.modules.system.role.entity.SysRole;
 import com.inventory.modules.system.user.entity.SysUser;
 import com.inventory.modules.system.user.vo.SysUserSimpleVO;
 import com.inventory.modules.system.permission.service.SysPermissionService;
@@ -84,29 +85,38 @@ public class AuthServiceImpl implements AuthService {
     // ========================== 用户注册 ==========================
     @Override
     public void register(SysUserRegisterDTO dto) {
-        // 1. 构造查询条件：根据用户名查询未删除的用户
+        // 1. 检查用户名是否存在
         LambdaQueryWrapper<SysUser> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(SysUser::getUserName, dto.getUserName());
         wrapper.eq(SysUser::getIsDeleted, 0);
-        // 2. 检查用户名是否已存在
         long count = sysUserService.count(wrapper);
         if (count > 0) {
             throw new BusinessException(ResultCode.USERNAME_EXIST);
         }
-        // 3. 构建用户实体并加密密码
+
+        // 2. 新建用户
         SysUser user = new SysUser();
         user.setUserName(dto.getUserName());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setNickName(dto.getNickName());
         user.setStatus(1);
         user.setIsDeleted(0);
-        // 4. 保存用户信息
         sysUserService.save(user);
-        // 5. 自动绑定普通用户角色（roleId=3）
-        SysUserRole userRole = new SysUserRole();
-        userRole.setUserId(user.getId());
-        userRole.setRoleId(3L);
-        sysUserRoleService.save(userRole);
+
+        // 3. 根据角色编码 USER 查询角色
+        LambdaQueryWrapper<SysRole> roleWrapper = Wrappers.lambdaQuery();
+        roleWrapper.eq(SysRole::getRoleCode, "NORMAL_USER"); // 角色编码为 USER
+        roleWrapper.eq(SysRole::getIsDeleted, 0);      // 未删除
+        SysRole userRole = sysRoleService.getOne(roleWrapper);
+        if (userRole == null) {
+            throw new BusinessException(ResultCode.ROLE_NOT_EXIST);
+        }
+
+        // 4. 绑定角色
+        SysUserRole sysUserRole = new SysUserRole();
+        sysUserRole.setUserId(user.getId());
+        sysUserRole.setRoleId(userRole.getId());
+        sysUserRoleService.save(sysUserRole);
     }
 
     // ========================== 用户登录 ==========================
