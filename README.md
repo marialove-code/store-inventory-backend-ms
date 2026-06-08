@@ -3,6 +3,7 @@
 > 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，逐步完善为 V1.0。  
 > 开源仅供**技术交流、学习展示**，自用项目。
 
+[![Version](https://img.shields.io/badge/Version-v1.0.0-blue.svg)](#)
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -27,17 +28,39 @@
 
 ![系统架构图](docs/images/architecture.png)
 
+详细说明：[docs/系统架构设计.md](docs/系统架构设计.md)
+
 ---
 
 ## 业务流转
 
 ![业务流转图](docs/images/business-flow.png)
 
+详细说明：[docs/业务流转图.md](docs/业务流转图.md)
+
 ---
 
 ## RBAC 权限
 
 ![RBAC 权限说明](docs/images/rbac.png)
+
+详细说明：[docs/RBAC权限设计.md](docs/RBAC权限设计.md)
+
+---
+
+## 项目文档
+
+| 文档 | 说明 |
+|------|------|
+| [系统架构设计](docs/系统架构设计.md) | 技术栈与分层 |
+| [业务流转图](docs/业务流转图.md) | 商品 / 库存 / 订单流程 |
+| [RBAC 权限设计](docs/RBAC权限设计.md) | 登录与权限 |
+| [后端功能模块](docs/后端功能模块.md) | 模块能力一览 |
+| [后端目录结构](docs/后端目录结构.md) | 代码包结构 |
+| [API 接口设计](docs/API接口设计.md) | 接口约定与速查 |
+| [数据库设计](docs/数据库设计.md) | 表结构与关系 |
+
+更多见 [docs/README.md](docs/README.md)
 
 ---
 
@@ -66,5 +89,7 @@ mvn spring-boot:run
 ## 说明
 
 自家门店自用项目，按实际需求迭代。欢迎 Star / Issue 交流。
+
+**更新日志：** [CHANGELOG.md](CHANGELOG.md)
 
 **许可证：** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
