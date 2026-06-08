@@ -1,6 +1,6 @@
 # RBAC 权限设计
 
-> [← 文档目录](README.md) · [← 返回 README](../README.md)
+> [← 返回 README](../README.md)
 
 用户 → 角色 → 权限，登录后发 Token，接口用权限码校验。
 

@@ -60,8 +60,6 @@
 | [API 接口设计](docs/API接口设计.md) | 接口约定与速查 |
 | [数据库设计](docs/数据库设计.md) | 表结构与关系 |
 
-更多见 [docs/README.md](docs/README.md)
-
 ---
 
 ## 快速启动
@@ -74,9 +72,20 @@ cd store-inventory-backend
 ```
 
 1. 创建数据库 `inventory_store`
-2. 修改 `src/main/resources/application.yml`，将 `spring.profiles.active` 改为 `dev`
-3. 修改 `application-dev.yml` 中的数据库、Redis 连接（密码建议用环境变量 `DB_PWD`、`REDIS_PWD`）
-4. 启动：
+2. 按顺序执行以下 SQL 脚本：
+
+   | 顺序 | 文件 |
+   |------|------|
+   | 1 | [docs/sql/数据库建表语句.sql](docs/sql/数据库建表语句.sql) |
+   | 2 | [docs/sql/权限插入.sql](docs/sql/权限插入.sql) |
+   | 3 | [docs/sql/角色插入.sql](docs/sql/角色插入.sql) |
+   | 4 | [docs/sql/用户.sql](docs/sql/用户.sql) |
+
+   > 仅在全新空库执行，重复执行可能主键冲突。
+
+3. 修改 `src/main/resources/application.yml`，将 `spring.profiles.active` 改为 `dev`
+4. 修改 `application-dev.yml` 中的数据库、Redis 连接（密码建议用环境变量 `DB_PWD`、`REDIS_PWD`）
+5. 启动：
 
 ```bash
 mvn spring-boot:run

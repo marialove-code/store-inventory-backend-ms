@@ -1,6 +1,6 @@
 # API 接口设计
 
-> [← 文档目录](README.md) · [← 返回 README](../README.md)
+> [← 返回 README](../README.md)
 
 **基础路径：** `http://localhost:8080/api`  
 **在线调试：** `/api/doc.html`（Knife4j，最全最准，联调优先看这个）
