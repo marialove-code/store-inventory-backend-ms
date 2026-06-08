@@ -4,7 +4,14 @@
 > 从「门店销售 + 总览」起步，开发过程中逐步完善，现为 **V1.0**。  
 > 开源到 Gitee，主要是**技术交流、学习展示**，自用项目，非商业产品。
 
-**技术栈：** Java 17 · Spring Boot 3 · PostgreSQL · Redis
+[![Version](https://img.shields.io/badge/Version-V1.0-blue.svg)](#)
+[![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7.0+-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![MyBatis-Plus](https://img.shields.io/badge/MyBatis--Plus-3.5.5-0099FF?logo=mybatis&logoColor=white)](https://baomidou.com/)
+[![Knife4j](https://img.shields.io/badge/Knife4j-4.3.0-85EA2D?logo=swagger&logoColor=black)](https://doc.xiaominfo.com/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 
