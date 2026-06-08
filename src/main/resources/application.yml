@@ -6,7 +6,7 @@
 # ==============================
 spring:
   profiles:
-    active: prd
+    active: dev
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
