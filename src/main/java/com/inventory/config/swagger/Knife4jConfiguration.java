@@ -17,7 +17,7 @@ import io.swagger.v3.oas.models.info.License;
 @Configuration
 public class Knife4jConfiguration {
 
-    @Value("${app.version:V1.0}")
+    @Value("${app.version:v1.0}")
     private String appVersion;
 
     @Bean

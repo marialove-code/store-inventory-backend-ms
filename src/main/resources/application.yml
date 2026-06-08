@@ -20,7 +20,7 @@ spring:
 # 公共配置（所有环境共用）
 # ==============================
 app:
-  version: V1.0
+  version: v1.0
 
 server:
   servlet:
