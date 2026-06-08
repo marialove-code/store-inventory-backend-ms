@@ -56,27 +56,9 @@
 
 ## 系统架构
 
-<!-- 正式版可替换为 docs/images/architecture.png -->
+![系统架构图](docs/images/architecture.png)
 
-```
-管理端 / 门店端（前端）
-        │
-        ▼
-Spring Boot 单体应用（:8080，接口前缀 /api）
-  ├── JWT 鉴权（Spring Security）
-  ├── Controller → Service → Mapper
-  └── 横切能力：权限 / 日志 / 限流 / 监控
-        │
-   ┌────┴────────────┐
-   ▼                 ▼
-PostgreSQL         Redis
-（业务数据）    （登录态 / 权限缓存）
-        │
-        ▼
-本地文件存储（头像、商品图片等）
-```
-
-**说明：** 前后端分离的单体项目，门店记账和后台管理共用同一套后端，没有拆微服务。
+前后端分离的单体项目，门店记账和后台管理共用同一套后端，没有拆微服务。
 
 > 详细架构见 [docs/系统架构设计.md](docs/系统架构设计.md)
 
@@ -84,17 +66,7 @@ PostgreSQL         Redis
 
 ## RBAC 权限说明
 
-<!-- 正式版可替换为 docs/images/rbac.png -->
-
-系统采用常见的 **用户 → 角色 → 权限** 模型：
-
-```
-用户 (sys_user)
-  └── 用户角色 (sys_user_role)
-        └── 角色 (sys_role)
-              └── 角色权限 (sys_role_permission)
-                    └── 权限 / 菜单 (sys_permission)
-```
+![RBAC 权限说明](docs/images/rbac.png)
 
 - 登录后签发 Token，访问接口时在 Header 携带 `Authorization: Bearer {token}`
 - 接口通过 `@RequiresPerm` 注解校验权限码，例如 `goods:product:list`
@@ -107,33 +79,12 @@ PostgreSQL         Redis
 
 ## 业务流转
 
-<!-- 正式版可替换为 docs/images/shop-flow.png -->
+![业务流转图](docs/images/business-flow.png)
 
-### 门店开单（项目初心）
-
-```
-选商品 → 校验库存 → 扣减 shop_product 库存
-                          ↓
-              写入 shop_sale_record（金额 + 利润）
-                          ↓
-              看板 / 统计展示今日、本月营收
-```
-
+门店开单（项目初心）：选商品 → 校验库存 → 扣减库存 → 写入销售流水 → 看板统计今日/本月营收。  
 对应接口：`POST /shop/sale` · `GET /shop/sale/stats` · `GET /shop/record/list`
 
-### 功能演进示意
-
-```
-门店记账（开单 + 看板）
-        ↓
-  补商品 / 库存管理
-        ↓
-  补订单 / 权限 / 监控
-        ↓
-      V1.0
-```
-
-入库出库、订单状态流转、退款审核等完整流程见 [docs/业务流转图.md](docs/业务流转图.md)。
+> 完整流程见 [docs/业务流转图.md](docs/业务流转图.md)
 
 ---
 
