@@ -1,9 +1,9 @@
 # 门店简易记账 · 后端
 
-> 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，逐步完善为 V1.0。  
+> 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，逐步完善为 v1.0。  
 > 开源仅供**技术交流、学习展示**，自用项目。
 
-[![Version](https://img.shields.io/badge/Version-v1.0.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/Version-v1.0-blue.svg)](#)
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -92,6 +92,18 @@ mvn spring-boot:run
 ```
 
 **接口文档：** http://localhost:8080/api/doc.html
+
+---
+
+## 后续规划
+
+> 中长期演进方向，不含排期与版本号，按业务优先级与实际节奏逐步推进。详见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **核心业务高并发改造**：聚焦库存扣减、下单锁单等关键链路，完善分布式锁与幂等校验，防范超卖与重复提交
+- **智能能力接入**：引入 AI 辅助能力（销售分析、经营摘要、智能问答等），与进销存、订单、门店收银深度打通
+- **微服务架构演进**：由单体逐步拆分为领域微服务，建设 API 网关、认证中心与各业务服务
+- **云原生体系建设**：容器化部署（Docker / Kubernetes）、CI/CD 流水线，以及日志、指标、链路追踪等可观测性能力
+- **微信商城小程序**：面向 C 端的轻量微信商城，与商品、库存、订单体系联动，实现线上线下一体化
 
 ---
 
