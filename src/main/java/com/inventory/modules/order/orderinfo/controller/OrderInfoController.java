@@ -52,7 +52,7 @@ public class OrderInfoController {
      * 新建订单
      * 权限：order:info:add
      */
-    @PostMapping
+    @PostMapping("/add")
     @RequiresPerm("order:info:add")
     public Result<?> add(@Valid @RequestBody OrderInfoDTO dto) {
         return orderInfoService.createOrder(dto);
