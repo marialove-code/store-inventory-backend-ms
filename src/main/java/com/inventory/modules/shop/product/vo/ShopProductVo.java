@@ -37,6 +37,21 @@ public class ShopProductVo {
     private Integer stock;
 
     /**
+     * 厂家
+     */
+    private String factory;
+
+    /**
+     * 厂家联系方式
+     */
+    private String factoryContact;
+
+    /**
+     * 备注信息
+     */
+    private String remark;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

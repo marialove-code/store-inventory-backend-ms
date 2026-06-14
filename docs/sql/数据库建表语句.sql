@@ -451,10 +451,13 @@ CREATE TABLE public.shop_product (
 	cost_price numeric(10, 2) NOT NULL, -- 进货单价
 	sale_price numeric(10, 2) NOT NULL, -- 售卖单价
 	stock int4 DEFAULT 0 NOT NULL, -- 当前库存
-	"source" varchar(64) NULL, -- 商品来源
+	factory varchar(128) NULL, -- 厂家
+	factory_contact varchar(64) NULL, -- 厂家联系方式
+	remark varchar(512) NULL, -- 备注信息
 	stock_warn int4 NULL, -- 库存预警值
 	create_time timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 创建时间
 	update_time timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 更新时间
+	is_deleted int4 DEFAULT 0 NOT NULL, -- 逻辑删除 0=正常 1=已删除
 	CONSTRAINT shop_product_cost_price_check CHECK ((cost_price >= (0)::numeric)),
 	CONSTRAINT shop_product_pkey PRIMARY KEY (id),
 	CONSTRAINT shop_product_sale_price_check CHECK ((sale_price >= (0)::numeric)),
@@ -471,10 +474,13 @@ COMMENT ON COLUMN public.shop_product.product_name IS '商品配件名称';
 COMMENT ON COLUMN public.shop_product.cost_price IS '进货单价';
 COMMENT ON COLUMN public.shop_product.sale_price IS '售卖单价';
 COMMENT ON COLUMN public.shop_product.stock IS '当前库存';
-COMMENT ON COLUMN public.shop_product."source" IS '商品来源';
+COMMENT ON COLUMN public.shop_product.factory IS '厂家';
+COMMENT ON COLUMN public.shop_product.factory_contact IS '厂家联系方式';
+COMMENT ON COLUMN public.shop_product.remark IS '备注信息';
 COMMENT ON COLUMN public.shop_product.stock_warn IS '库存预警值';
 COMMENT ON COLUMN public.shop_product.create_time IS '创建时间';
 COMMENT ON COLUMN public.shop_product.update_time IS '更新时间';
+COMMENT ON COLUMN public.shop_product.is_deleted IS '逻辑删除 0=正常 1=已删除';
 
 
 -- public.shop_sale_record 定义
@@ -493,6 +499,7 @@ CREATE TABLE public.shop_sale_record (
 	profit numeric(10, 2) NULL, -- 单笔利润
 	sale_time timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 售卖时间
 	create_time timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 单据创建时间
+	is_deleted int4 DEFAULT 0 NOT NULL, -- 逻辑删除 0=正常 1=已删除
 	CONSTRAINT shop_sale_record_pkey PRIMARY KEY (id),
 	CONSTRAINT shop_sale_record_quantity_check CHECK ((quantity >= 1)),
 	CONSTRAINT shop_sale_record_sale_price_check CHECK ((sale_price >= (0)::numeric)),
@@ -513,6 +520,7 @@ COMMENT ON COLUMN public.shop_sale_record.total_amount IS '实收总金额';
 COMMENT ON COLUMN public.shop_sale_record.profit IS '单笔利润';
 COMMENT ON COLUMN public.shop_sale_record.sale_time IS '售卖时间';
 COMMENT ON COLUMN public.shop_sale_record.create_time IS '单据创建时间';
+COMMENT ON COLUMN public.shop_sale_record.is_deleted IS '逻辑删除 0=正常 1=已删除';
 
 
 -- public.sys_api_monitor 定义

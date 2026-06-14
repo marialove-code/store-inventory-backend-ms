@@ -10,17 +10,29 @@
         <result column="cost_price" property="costPrice"/>
         <result column="sale_price" property="salePrice"/>
         <result column="stock" property="stock"/>
-        <result column="source" property="source"/>
+        <result column="factory" property="factory"/>
+        <result column="factory_contact" property="factoryContact"/>
+        <result column="remark" property="remark"/>
         <result column="stock_warn" property="stockWarn"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
     </resultMap>
 
 
     <select id="selectWarnProduct" resultType="com.inventory.modules.shop.dashboard.vo.ShopStockWarnVO">
-        SELECT product_name,source as product_code,'-' as spec,stock,stock_warn
+        SELECT product_name,'-' as product_code,'-' as spec,stock,stock_warn
         FROM shop_product
-        WHERE stock_warn IS NOT NULL AND stock &lt; stock_warn
+        WHERE is_deleted = 0 AND stock_warn IS NOT NULL AND stock &lt; stock_warn
+    </select>
+
+    <!-- 库存金额汇总：总进价 = Σ(进货单价×库存)，总售价 = Σ(售卖单价×库存) -->
+    <select id="selectProductInventoryStats" resultType="com.inventory.modules.shop.product.vo.ShopProductStatsVo">
+        SELECT
+            COALESCE(SUM(cost_price * stock), 0) AS total_cost_amount,
+            COALESCE(SUM(sale_price * stock), 0) AS total_sale_amount
+        FROM shop_product
+        WHERE is_deleted = 0
     </select>
 
 </mapper>

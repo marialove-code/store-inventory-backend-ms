@@ -43,4 +43,12 @@ public class ShopSaleController {
     public Result<?> stats() {
         return shopSaleRecordService.getSaleStatistics();
     }
+
+    /**
+     * 逻辑删除销售流水
+     */
+    @DeleteMapping("/record/{id}")
+    public Result<?> deleteRecord(@PathVariable Long id) {
+        return shopSaleRecordService.deleteSaleRecord(id);
+    }
 }

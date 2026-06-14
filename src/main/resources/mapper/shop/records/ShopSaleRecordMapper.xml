@@ -14,6 +14,7 @@
         <result column="profit" property="profit"/>
         <result column="sale_time" property="saleTime"/>
         <result column="create_time" property="createTime"/>
+        <result column="is_deleted" property="isDeleted"/>
     </resultMap>
 
 
@@ -26,6 +27,7 @@
         AND EXTRACT(MONTH FROM sale_time) = EXTRACT(MONTH FROM CURRENT_DATE)
         THEN total_amount ELSE 0 END) AS month_amount
         FROM shop_sale_record
+        WHERE is_deleted = 0
     </select>
 
 
@@ -44,14 +46,14 @@
         -- 自然年
         SUM(CASE WHEN DATE_TRUNC('year',sale_time)=DATE_TRUNC('year',CURRENT_DATE) THEN total_amount ELSE 0 END) AS year_sale_amount
         FROM shop_sale_record
-        WHERE EXTRACT(YEAR FROM sale_time) = #{year}
+        WHERE is_deleted = 0 AND EXTRACT(YEAR FROM sale_time) = #{year}
     </select>
 
 
     <select id="selectHotTop5Product" resultType="com.inventory.modules.shop.dashboard.vo.ShopHotProductVO">
         SELECT product_name,SUM(quantity) as sale_count
         FROM shop_sale_record
-        WHERE EXTRACT(YEAR FROM sale_time) = #{year}
+        WHERE is_deleted = 0 AND EXTRACT(YEAR FROM sale_time) = #{year}
         GROUP BY product_name
         ORDER BY sale_count DESC
         LIMIT 5

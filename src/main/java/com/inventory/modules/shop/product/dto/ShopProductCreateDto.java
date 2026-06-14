@@ -42,7 +42,17 @@ public class ShopProductCreateDto {
     private Integer stock;
 
     /**
-     * 商品来源
+     * 厂家
      */
-    private String source;
+    private String factory;
+
+    /**
+     * 厂家联系方式
+     */
+    private String factoryContact;
+
+    /**
+     * 备注信息
+     */
+    private String remark;
 }

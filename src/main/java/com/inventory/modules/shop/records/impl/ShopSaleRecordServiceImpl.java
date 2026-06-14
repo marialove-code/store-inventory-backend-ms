@@ -3,6 +3,7 @@ package com.inventory.modules.shop.records.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -49,10 +50,14 @@ public class ShopSaleRecordServiceImpl extends ServiceImpl<ShopSaleRecordMapper,
 
         LambdaQueryWrapper<ShopSaleRecord> wrapper = new LambdaQueryWrapper<>();
 
+        wrapper.eq(ShopSaleRecord::getIsDeleted, 0);
+
         // 商品名称模糊搜索
         if (StrUtil.isNotBlank(param.getKeyword())) {
             wrapper.like(ShopSaleRecord::getProductName, param.getKeyword());
         }
+
+        applySaleDateFilter(wrapper, param);
 
         wrapper.orderByDesc(ShopSaleRecord::getSaleTime);
 
@@ -80,7 +85,7 @@ public class ShopSaleRecordServiceImpl extends ServiceImpl<ShopSaleRecordMapper,
     public Result<?> createSaleOrder(ShopSaleCreateDto dto) {
         // 查询商品
         ShopProduct product = shopProductService.getById(dto.getProductId());
-        if (product == null) {
+        if (product == null || product.getIsDeleted() == 1) {
             return Result.fail("商品不存在");
         }
 
@@ -111,9 +116,58 @@ public class ShopSaleRecordServiceImpl extends ServiceImpl<ShopSaleRecordMapper,
         record.setProfit(profit);
         record.setSaleTime(LocalDateTime.now());
         record.setCreateTime(LocalDateTime.now());
+        record.setIsDeleted(0);
 
         boolean save = this.save(record);
         return Result.success(save);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> deleteSaleRecord(Long id) {
+        ShopSaleRecord record = this.getById(id);
+        if (record == null || record.getIsDeleted() == 1) {
+            return Result.fail("销售记录不存在");
+        }
+
+        LambdaUpdateWrapper<ShopSaleRecord> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ShopSaleRecord::getId, id);
+        wrapper.set(ShopSaleRecord::getIsDeleted, 1);
+        this.update(wrapper);
+        return Result.success("删除成功");
+    }
+
+    /**
+     * 按售卖年月日筛选（可只选年，或年+月，或完整日期）
+     */
+    private void applySaleDateFilter(LambdaQueryWrapper<ShopSaleRecord> wrapper, ShopSaleRecordListParam param) {
+        Integer year = param.getSaleYear();
+        Integer month = param.getSaleMonth();
+        Integer day = param.getSaleDay();
+
+        if (year == null) {
+            return;
+        }
+
+        if (month != null && day != null) {
+            LocalDate date = LocalDate.of(year, month, day);
+            wrapper.ge(ShopSaleRecord::getSaleTime, date.atStartOfDay());
+            wrapper.lt(ShopSaleRecord::getSaleTime, date.plusDays(1).atStartOfDay());
+            return;
+        }
+
+        if (month != null) {
+            LocalDate start = LocalDate.of(year, month, 1);
+            LocalDate end = start.plusMonths(1);
+            wrapper.ge(ShopSaleRecord::getSaleTime, start.atStartOfDay());
+            wrapper.lt(ShopSaleRecord::getSaleTime, end.atStartOfDay());
+            return;
+        }
+
+        LocalDate start = LocalDate.of(year, 1, 1);
+        LocalDate end = start.plusYears(1);
+        wrapper.ge(ShopSaleRecord::getSaleTime, start.atStartOfDay());
+        wrapper.lt(ShopSaleRecord::getSaleTime, end.atStartOfDay());
     }
 
     /**

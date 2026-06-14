@@ -27,4 +27,19 @@ public class ShopSaleRecordListParam {
      * 时间筛选：today/week/all
      */
     private String timeFilter;
+
+    /**
+     * 售卖年份（可选）
+     */
+    private Integer saleYear;
+
+    /**
+     * 售卖月份 1-12（可选，需配合 saleYear）
+     */
+    private Integer saleMonth;
+
+    /**
+     * 售卖日 1-31（可选，需配合 saleYear、saleMonth）
+     */
+    private Integer saleDay;
 }

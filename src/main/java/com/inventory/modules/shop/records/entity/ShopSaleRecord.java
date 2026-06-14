@@ -60,4 +60,9 @@ public class ShopSaleRecord {
      * 单据创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 逻辑删除 0=正常 1=已删除
+     */
+    private Integer isDeleted;
 }

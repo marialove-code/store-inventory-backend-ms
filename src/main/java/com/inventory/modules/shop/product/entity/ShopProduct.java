@@ -42,9 +42,19 @@ public class ShopProduct {
     private Integer stock;
 
     /**
-     * 商品来源
+     * 厂家
      */
-    private String source;
+    private String factory;
+
+    /**
+     * 厂家联系方式
+     */
+    private String factoryContact;
+
+    /**
+     * 备注信息
+     */
+    private String remark;
 
     /**
      * 库存预警值
@@ -60,4 +70,9 @@ public class ShopProduct {
      * 更新时间
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 逻辑删除 0=正常 1=已删除
+     */
+    private Integer isDeleted;
 }

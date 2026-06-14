@@ -42,6 +42,14 @@ public class ShopProductController {
     }
 
     /**
+     * 库存金额汇总（总进价、总售价）
+     */
+    @GetMapping("/stats")
+    public Result<?> stats() {
+        return shopProductService.getProductStats();
+    }
+
+    /**
      * 新增商品
      */
     @PostMapping
@@ -50,11 +58,19 @@ public class ShopProductController {
     }
 
     /**
-     * 修改（补货+调价）
+     * 修改（全字段）
      */
     @PutMapping("/{id}")
     public Result<?> update(@PathVariable Long id,
                                   @Valid @RequestBody ShopProductUpdateDto dto) {
         return shopProductService.updateProduct(id, dto);
+    }
+
+    /**
+     * 逻辑删除
+     */
+    @DeleteMapping("/{id}")
+    public Result<?> delete(@PathVariable Long id) {
+        return shopProductService.deleteProduct(id);
     }
 }

@@ -20,6 +20,11 @@ public interface ShopSaleRecordService extends IService<ShopSaleRecord> {
     Result<?> createSaleOrder(ShopSaleCreateDto dto);
 
     /**
+     * 逻辑删除销售流水
+     */
+    Result<?> deleteSaleRecord(Long id);
+
+    /**
      * 获取销售统计（今日+本月）
      */
     Result<?> getSaleStatistics();
