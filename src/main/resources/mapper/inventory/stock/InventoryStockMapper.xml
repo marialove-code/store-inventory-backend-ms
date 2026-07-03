@@ -40,4 +40,17 @@
         FROM inventory_stock
         WHERE stock &lt;= stock_warn
     </select>
+
+    <!--
+        V4 原子锁定库存（PostgreSQL）
+        条件：可用库存 stock - lock_stock >= qty 才更新，否则影响行数为 0
+        与 V1「先 SELECT 再判断再 UPDATE」不同，判断与更新在同一条 SQL 内完成
+    -->
+    <update id="lockStockIfAvailable">
+        UPDATE inventory_stock
+        SET lock_stock = lock_stock + #{qty},
+            update_time = NOW()
+        WHERE goods_id = #{goodsId}
+          AND stock - COALESCE(lock_stock, 0) &gt;= #{qty}
+    </update>
 </mapper>

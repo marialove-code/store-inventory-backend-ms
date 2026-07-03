@@ -3,6 +3,7 @@ package com.inventory.modules.invertory.stock.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.inventory.modules.invertory.stock.dto.LockStockFlowContext;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
 import com.inventory.modules.invertory.stock.service.StockService;
@@ -242,6 +243,86 @@ public class StockServiceImpl implements StockService {
                 null,
                 remark
         );
+    }
+
+    /**
+     * V3：仅更新 lock_stock，不写流水（流水在线程池中异步补写）。
+     */
+    @Override
+    public LockStockFlowContext lockStockUpdateOnly(Long goodsId, Integer qty) {
+        LambdaQueryWrapper<InventoryStock> queryStockWrapper = new LambdaQueryWrapper<>();
+        queryStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        InventoryStock stock = inventoryStockMapper.selectOne(queryStockWrapper);
+
+        int before = stock.getLockStock() == null ? 0 : stock.getLockStock();
+        int after = before + qty;
+
+        LambdaUpdateWrapper<InventoryStock> updateStockWrapper = new LambdaUpdateWrapper<>();
+        updateStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        updateStockWrapper.setSql("lock_stock = lock_stock + " + qty);
+        inventoryStockMapper.update(null, updateStockWrapper);
+
+        return LockStockFlowContext.builder()
+                .goodsId(goodsId)
+                .goodsName(stock.getGoodsName())
+                .beforeLockStock(before)
+                .changeQty(qty)
+                .afterLockStock(after)
+                .build();
+    }
+
+    /**
+     * V4：在数据库层用「带条件的 UPDATE」原子锁定库存，并同步写流水。
+     * <p>
+     * 核心 SQL 见 {@link InventoryStockMapper#lockStockIfAvailable}：
+     * {@code WHERE stock - lock_stock >= qty}，避免 V1 读-改-写竞态。
+     * </p>
+     */
+    @Override
+    public LockStockFlowContext lockStockAtomically(Long goodsId, Integer qty, String orderNo) {
+        // ===================== 1. 确认库存行存在（便于区分「无商品」与「库存不足」） =====================
+        LambdaQueryWrapper<InventoryStock> queryStockWrapper = new LambdaQueryWrapper<>();
+        queryStockWrapper.eq(InventoryStock::getGoodsId, goodsId);
+        InventoryStock stock = inventoryStockMapper.selectOne(queryStockWrapper);
+
+        if (stock == null) {
+            throw new IllegalStateException("商品库存不存在");
+        }
+
+        int beforeLockStock = stock.getLockStock() == null ? 0 : stock.getLockStock();
+
+        // ===================== 2. 原子 UPDATE：条件不满足则影响行数 = 0 =====================
+        int affectedRows = inventoryStockMapper.lockStockIfAvailable(goodsId, qty);
+        if (affectedRows == 0) {
+            int totalStock = stock.getStock() == null ? 0 : stock.getStock();
+            int usableStock = totalStock - beforeLockStock;
+            throw new IllegalStateException("库存不足，当前可用库存：" + usableStock);
+        }
+
+        // ===================== 3. 同一事务内再查一次，拿到准确的 after 值写流水 =====================
+        InventoryStock updated = inventoryStockMapper.selectOne(queryStockWrapper);
+        int afterLockStock = updated.getLockStock() == null ? 0 : updated.getLockStock();
+        int beforeForFlow = afterLockStock - qty;
+
+        // 操作类型 3 = 锁定库存
+        writeFlow(
+                goodsId,
+                updated.getGoodsName(),
+                beforeForFlow,
+                qty,
+                afterLockStock,
+                3,
+                orderNo,
+                "V4 SQL原子锁定：订单预占锁定库存"
+        );
+
+        return LockStockFlowContext.builder()
+                .goodsId(goodsId)
+                .goodsName(updated.getGoodsName())
+                .beforeLockStock(beforeForFlow)
+                .changeQty(qty)
+                .afterLockStock(afterLockStock)
+                .build();
     }
 
     // ======================== 4. 释放库存（取消订单） ========================
