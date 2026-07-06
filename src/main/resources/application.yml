@@ -11,11 +11,21 @@ spring:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
     default-property-inclusion: non_null
-# 文件上传大小限制
+  # 文件上传大小限制
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  # Spring AI（通义千问 DashScope · OpenAI 兼容模式）
+  # API Key 请配置环境变量 DASHSCOPE_API_KEY，勿写入仓库
+  ai:
+    openai:
+      api-key: ${DASHSCOPE_API_KEY:}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-turbo
+          temperature: 0.3
 # ==============================
 # 公共配置（所有环境共用）
 # ==============================
@@ -63,4 +73,17 @@ springdoc:
     operations-sorter: alpha
   api-docs:
     path: /v3/api-docs
+
+# ==============================
+# 业务侧 AI 配置（会话长度、降级话术等）
+# ==============================
+inventory:
+  ai:
+    chat:
+      max-history-messages: 20
+      fallback-reply: 抱歉，智能客服暂时繁忙，请稍后再试。您也可以点击上方快捷问题，或联系管理员。
+      # 会话存储：memory（默认 JVM）| redis（学习对比用，见 RedisChatSessionStore）
+      session-store: memory
+      # Redis 会话 TTL（秒），7 天 = 604800
+      session-ttl-seconds: 604800
 

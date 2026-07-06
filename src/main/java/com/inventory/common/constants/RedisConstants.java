@@ -49,4 +49,11 @@ public class RedisConstants {
      * accessToken -> refreshToken
      */
     public static final String USER_DEVICE_PREFIX = "user:device:";
+
+    /**
+     * AI 客服多轮会话历史前缀（Redis 实现用）。
+     * 完整 Key 示例：inventory:ai:chat:session:{sessionId}
+     * TTL 由 inventory.ai.chat.session-ttl-seconds 控制。
+     */
+    public static final String AI_CHAT_SESSION_PREFIX = "inventory:ai:chat:session:";
 }
