@@ -6,7 +6,7 @@
 
     <groupId>com.inventory</groupId>
     <artifactId>store-inventory-backend</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <name>store-inventory-backend</name>
     <description>门店库存后端</description>
     <packaging>jar</packaging>

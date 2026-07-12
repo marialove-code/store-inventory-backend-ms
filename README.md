@@ -1,9 +1,9 @@
 # 门店简易记账 · 后端
 
-> 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，逐步完善为 v1.0。  
+> 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，完善为 v1.0 进销存闭环，现已发布 **v2.0.0（AI 全接入）**。  
 > 开源仅供**技术交流、学习展示**，自用项目。
 
-[![Version](https://img.shields.io/badge/Version-v1.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/Version-v2.0.0-blue.svg)](#)
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -21,6 +21,7 @@
 - **商品 & 库存**：品牌分类、入出库、库存预警
 - **订单管理**：下单锁库存、发货扣库存、退款回滚
 - **权限 & 日志**：登录鉴权、角色权限、操作记录
+- **AI 辅助（v2）**：智能客服、商品智搜、补货建议、SQL/运维助手、看板洞察与预测
 
 ---
 
