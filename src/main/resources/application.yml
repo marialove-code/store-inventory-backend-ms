@@ -86,4 +86,21 @@ inventory:
       session-store: memory
       # Redis 会话 TTL（秒），7 天 = 604800
       session-ttl-seconds: 604800
+    # AI SQL 助手：只读查询安全边界
+    sql:
+      max-rows: 100
+      allowed-tables:
+        - goods_product
+        - goods_category
+        - goods_brand
+        - inventory_stock
+        - inventory_flow
+        - inventory_in
+        - inventory_out
+        - order_info
+        - order_delivery
+        - order_refund
+        - sys_user
+        - sys_role
+        - sys_operation_log
 

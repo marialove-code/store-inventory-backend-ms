@@ -47,7 +47,7 @@ public class InMemoryChatSessionStore implements ChatSessionStore {
      * </p>
      * <p>
      * 注意：Map 本身 <strong>没有上限、没有 TTL</strong>，session 只增不减直到进程结束——
-     * 生产环境应换 Redis 并设置过期时间，见文档「AI客服-学习站点 §5.5」。
+     * 生产环境应换 Redis 并设置过期时间，见 docs/AI功能复习手册.md「客服深挖 / ChatSessionStore」。
      * </p>
      */
     private final Map<String, List<Message>> sessionHistory = new ConcurrentHashMap<>();
