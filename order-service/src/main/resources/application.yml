@@ -1,0 +1,14 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: order-service
+
+# P0 不连数据库；后续阶段再配置 datasource
+logging:
+  level:
+    root: INFO
+    com.inventory.order: INFO
