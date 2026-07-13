@@ -1,6 +1,8 @@
 package com.inventory.stock.controller;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.inventory.common.client.dto.StockInitRequest;
 import com.inventory.common.response.Result;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -98,9 +101,55 @@ public class StockCommandController {
     }
 
     /**
+     * 平台新增商品时初始化库存记录。
+     * <p>
+     * 对应单体：{@code GoodsProductServiceImpl#addProduct} 本地 insert InventoryStock。
+     * 拆分后由 platform 调本接口写入；同一 {@code goodsId} 已存在记录则直接成功（幂等），避免重复插入。
+     * </p>
+     * <p>
+     * 默认值：stock=0、stockWarn=10、lockStock=0、stockStatus=1（正常），时间取 now。
+     * </p>
+     */
+    @PostMapping("/init-stock")
+    public Result<Void> initStock(@RequestBody StockInitRequest req) {
+        if (req == null || req.getGoodsId() == null) {
+            return Result.fail("goodsId 不能为空");
+        }
+        // 幂等：已有该商品库存记录则直接成功
+        LambdaQueryWrapper<InventoryStock> qw = new LambdaQueryWrapper<>();
+        qw.eq(InventoryStock::getGoodsId, req.getGoodsId());
+        InventoryStock existing = inventoryStockMapper.selectOne(qw);
+        if (existing != null) {
+            return Result.success();
+        }
+
+        int stock = req.getStock() != null ? req.getStock() : 0;
+        int stockWarn = req.getStockWarn() != null ? req.getStockWarn() : 10;
+        int lockStock = req.getLockStock() != null ? req.getLockStock() : 0;
+
+        InventoryStock entity = new InventoryStock();
+        entity.setId(IdUtil.getSnowflakeNextId());
+        entity.setGoodsId(req.getGoodsId());
+        entity.setGoodsName(req.getGoodsName());
+        entity.setCategoryName(req.getCategoryName());
+        entity.setStock(stock);
+        entity.setLockStock(lockStock);
+        entity.setStockWarn(stockWarn);
+        // 新建默认正常；后续入库/预警任务会再刷新状态
+        entity.setStockStatus(1);
+        entity.setSort(0);
+        LocalDateTime now = LocalDateTime.now();
+        entity.setCreateTime(now);
+        entity.setUpdateTime(now);
+        inventoryStockMapper.insert(entity);
+        return Result.success();
+    }
+
+    /**
      * 查询可用库存：{@code stock - lock_stock}。
      * <p>
      * 对应单体订单创建前的库存校验思路；供订单服务下单前探活可用量。
+     * 平台删除商品前也可据此判断账面 stock 是否 &gt; 0。
      * </p>
      *
      * @param goodsId 商品 ID

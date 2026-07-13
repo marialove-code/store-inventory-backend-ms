@@ -12,7 +12,7 @@
 
     <artifactId>inventory-common</artifactId>
     <name>inventory-common</name>
-    <description>微服务公共模块：统一返回体、业务异常、分页等（无启动类）</description>
+    <description>微服务公共模块：统一返回体、业务异常、分页、跨服务 DTO 等（无启动类）</description>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -25,6 +25,30 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-core</artifactId>
+        </dependency>
+        <!-- IpUtils 需要 HttpServletRequest；provided 避免与业务服务 web 启动器冲突 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- servlet API（IpUtils 直接引用 HttpServletRequest） -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- ValidationUtils 需要 jakarta.validation.Validator -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- IpUtils 使用 Hutool StrUtil -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

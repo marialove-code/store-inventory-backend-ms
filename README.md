@@ -3,13 +3,13 @@
 > ⚠️ **本目录是微服务拆分学习副本（`store-inventory-backend-ms`）**  
 > - 分支 `ms/dev`，远程 Gitee：`store-inventory-backend-ms`  
 > - **不要**与家里在用的单体仓 `store-inventory-backend`（8080）混用  
-> - 业务从单体**渐进迁入**，本仓从 0 搭多模块骨架  
 
-## 当前结构（P4a：AI 独立服务已完成）
+## 当前结构（P4：platform-service 已完成）
 
 ```text
-store-inventory-backend-ms/          # 父 POM（packaging=pom）
-├── inventory-common                 # 公共 jar：Result / 枚举 / 单号工具
+store-inventory-backend-ms/
+├── inventory-common                 # 公共 jar：Result / ResultCode / RedisConstants / StockInitRequest …
+├── platform-service                 # 平台服务  端口 8081（认证+商品+系统+看板+监控+门店）
 ├── inventory-service                # 库存服务  端口 8082
 ├── order-service                    # 订单服务  端口 8083（HTTP 调库存）
 └── ai-service                       # AI 服务    端口 8084
@@ -17,42 +17,45 @@ store-inventory-backend-ms/          # 父 POM（packaging=pom）
 
 | 服务 | 端口 | 探活 |
 |------|------|------|
+| platform-service | 8081 | `GET http://localhost:8081/api/platform/ping` |
 | inventory-service | 8082 | `GET http://localhost:8082/api/inventory/ping` |
 | order-service | 8083 | `GET http://localhost:8083/api/order/ping` |
 | ai-service | 8084 | `GET http://localhost:8084/api/ai/ping` |
 | 单体（参考，勿改） | 8080 | 家庭在用 |
 
-### ai-service 能力
+### platform-service 范围（照搬单体）
 
-| 能力 | 路径 |
-|------|------|
-| 探活 | `GET /ai/ping` |
-| 智能客服 | `POST /ai/chat` |
-| 商品智搜 | `POST /ai/product/parse` |
-| Text-to-SQL | `POST /ai/sql/query` |
-| 运维分析 | `GET /ai/ops/analyze` |
-| 看板洞察 | `GET /ai/dashboard/insight` |
-| 销售预测 | `GET /ai/dashboard/sales-forecast` |
-| 补货建议 | `GET /ai/inventory/replenish` |
+认证 `/auth/**`、商品 `/goods/**`、系统用户角色权限日志在线、个人中心、看板 `/dashboard/**`、监控 `/monitor/**`、门店记账 `/shop/**`。  
+保留 Security / JWT / Redis / `@RequiresPerm` / 限流 / 操作日志。
 
-需环境变量：`DB_PWD`、`DASHSCOPE_API_KEY`（无 Key 时走规则降级，接口仍可用）。
+### 跨服务调用
+
+| 调用方 | 被调 | 说明 |
+|--------|------|------|
+| platform → inventory | `InventoryStockClient` | 新增商品 `init-stock`；删除前查 `usable` |
+| order → inventory | `InventoryStockClient` | lock / unlock / decrease-flow / increase / usable |
+
+公共 DTO：`inventory-common` 中 `StockInitRequest`。
 
 ## 本地启动
 
 ```powershell
 cd e:\Projects\store-inventory-backend-ms
 $env:DB_PWD="你的库密码"
-$env:DASHSCOPE_API_KEY="你的通义 Key"   # 可选
+$env:REDIS_PWD="你的 Redis 密码"
+$env:DASHSCOPE_API_KEY="可选"
 mvn clean install -DskipTests
 
-# 库存 8082 / 订单 8083 / AI 8084 分别 spring-boot:run
+# 建议启动顺序：inventory → platform → order → ai
 ```
+
+环境变量：`DB_PWD`、`REDIS_HOST`/`REDIS_PWD`、`JWT_SECRET`（可选覆盖）。
 
 ## 阶段说明
 
 - **P0～P3**：库存菜单闭环 + 订单 HTTP 调库存  
-- **P4a（当前）**：`ai-service` 独立（同库直连，暂无鉴权/限流/Redis 会话）  
-- **P4b**：`platform-service`（认证 + 商品 + 系统）  
+- **P4a**：ai-service 独立  
+- **P4（当前）**：platform-service（认证/商品/系统等照搬 + 跨服务库存 Client）  
 - **P5+**：Feign → Nacos → Gateway  
 
 详见 [docs/微服务拆分-起步.md](docs/微服务拆分-起步.md)
