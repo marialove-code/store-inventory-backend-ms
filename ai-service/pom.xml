@@ -12,7 +12,7 @@
 
     <artifactId>ai-service</artifactId>
     <name>ai-service</name>
-    <description>AI 鏈嶅姟锛堝鏈?鏅烘悳/SQL/杩愮淮/鐪嬫澘/琛ヨ揣锛岀鍙?8084锛?/description>
+    <description>AI 服务（客服/智搜/SQL/运维/看板/补货，端口 8084）</description>
 
     <dependencies>
         <dependency>

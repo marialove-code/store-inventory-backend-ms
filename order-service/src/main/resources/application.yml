@@ -6,6 +6,9 @@ server:
 spring:
   application:
     name: order-service
+  # 默认激活 dev，以便加载 concurrency 压测 Controller（@Profile("dev")）
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
     # 与库存服务、单体共用同一 PostgreSQL，便于渐进拆分时数据一致
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store

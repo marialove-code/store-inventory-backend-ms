@@ -5,15 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-      P0 鐖跺伐绋嬶細鍙仛渚濊禆鐗堟湰涓庢ā鍧楄仛鍚堬紝鏈韩涓嶅惎鍔ㄣ€?
-      涓氬姟浠ｇ爜浠庡崟浣撴笎杩涜縼鍏?platform / inventory / order / ai 绛夋湇鍔°€?
+      P0 父工程：只做依赖版本与模块聚合，本身不启动。
+      业务代码从单体渐进迁入 platform / inventory / order / ai 等服务。
     -->
     <groupId>com.inventory</groupId>
     <artifactId>store-inventory-backend-ms</artifactId>
     <version>3.0.0</version>
     <packaging>pom</packaging>
     <name>store-inventory-backend-ms</name>
-    <description>杩涢攢瀛樺井鏈嶅姟瀛︿範浠擄紙骞冲彴 + 搴撳瓨 + 璁㈠崟 + AI锛?/description>
+    <description>进销存微服务学习仓（平台 + 库存 + 订单 + AI）</description>
 
     <modules>
         <module>inventory-common</module>
@@ -29,15 +29,15 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>3.2.5</spring-boot.version>
         <maven.compiler.release>17</maven.compiler.release>
-        <!-- P1锛氬簱瀛樻牳蹇冧緷璧栫増鏈?-->
+        <!-- P1：库存核心依赖版本 -->
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <hutool.version>5.8.22</hutool.version>
-        <!-- P4锛氬钩鍙版湇鍔★紙JWT / 鐩戞帶 / IP 搴?/ 鏂囨。锛?-->
+        <!-- P4：平台服务（JWT / 监控 / IP 库 / 文档） -->
         <jjwt.version>0.11.5</jjwt.version>
         <oshi.version>6.6.5</oshi.version>
         <ip2region.version>2.7.0</ip2region.version>
         <knife4j.version>4.3.0</knife4j.version>
-        <!-- AI 鏈嶅姟锛歋pring AI Milestone -->
+        <!-- AI 服务：Spring AI Milestone -->
         <spring-ai.version>1.0.0-M6</spring-ai.version>
     </properties>
 
@@ -57,13 +57,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- 鏈粨搴撳瓙妯″潡鐗堟湰缁熶竴鐢辩埗 POM 绠＄悊 -->
+            <!-- 本仓库子模块版本统一由父 POM 管理 -->
             <dependency>
                 <groupId>com.inventory</groupId>
                 <artifactId>inventory-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!-- MyBatis-Plus锛圫pring Boot 3锛?-->
+            <!-- MyBatis-Plus（Spring Boot 3） -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
@@ -74,13 +74,13 @@
                 <artifactId>mybatis-plus-core</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
-            <!-- Hutool锛堥洩鑺?ID銆丅ean 鎷疯礉绛夛級 -->
+            <!-- Hutool（雪花 ID、Bean 拷贝等） -->
             <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
             </dependency>
-            <!-- JWT锛堝钩鍙伴壌鏉冿級 -->
+            <!-- JWT（平台鉴权） -->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-api</artifactId>
@@ -96,19 +96,19 @@
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
-            <!-- 鏈嶅姟鍣ㄧ洃鎺э紙oshi锛?-->
+            <!-- 服务器监控（oshi） -->
             <dependency>
                 <groupId>com.github.oshi</groupId>
                 <artifactId>oshi-core</artifactId>
                 <version>${oshi.version}</version>
             </dependency>
-            <!-- IP 褰掑睘鍦帮紙ip2region锛?-->
+            <!-- IP 归属地（ip2region） -->
             <dependency>
                 <groupId>org.lionsoul</groupId>
                 <artifactId>ip2region</artifactId>
                 <version>${ip2region.version}</version>
             </dependency>
-            <!-- Knife4j OpenAPI3锛堝彲閫夛紝骞冲彴鏂囨。锛?-->
+            <!-- Knife4j OpenAPI3（可选，平台文档） -->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
@@ -117,7 +117,7 @@
         </dependencies>
     </dependencyManagement>
 
-    <!-- Spring AI M6 浣嶄簬 Milestone 浠撳簱 -->
+    <!-- Spring AI M6 位于 Milestone 仓库 -->
     <repositories>
         <repository>
             <id>spring-milestones</id>

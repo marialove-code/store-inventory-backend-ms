@@ -12,7 +12,7 @@
 
     <artifactId>inventory-common</artifactId>
     <name>inventory-common</name>
-    <description>寰湇鍔″叕鍏辨ā鍧楋細缁熶竴杩斿洖浣撱€佷笟鍔″紓甯搞€佸垎椤点€佽法鏈嶅姟 DTO 绛夛紙鏃犲惎鍔ㄧ被锛?/description>
+    <description>微服务公共模块：统一返回体、业务异常、分页、跨服务 DTO 等（无启动类）</description>
     <packaging>jar</packaging>
 
     <dependencies>

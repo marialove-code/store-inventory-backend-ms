@@ -2,7 +2,11 @@ package com.inventory.stock.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.inventory.common.client.dto.LockStockFlowContext;
+import com.inventory.common.client.dto.ResetStockRequest;
 import com.inventory.common.client.dto.StockInitRequest;
+import com.inventory.common.client.dto.WriteFlowRequest;
 import com.inventory.common.response.Result;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
@@ -168,10 +172,105 @@ public class StockCommandController {
 
         Map<String, Object> data = new HashMap<>(8);
         data.put("goodsId", goodsId);
+        data.put("goodsName", stock.getGoodsName());
         data.put("stock", total);
         data.put("lockStock", locked);
         data.put("usableStock", usable);
         return Result.success(data);
+    }
+
+    /**
+     * V3 专用：仅更新 lock_stock，不写流水。
+     * <p>
+     * 对应 {@code StockService#lockStockUpdateOnly}。
+     * 流水由订单侧异步调用 {@code /write-flow} 补写，以缩短同步路径耗时。
+     * </p>
+     *
+     * @param req goodsId + qty
+     * @return 异步写流水所需的 before/after 上下文
+     */
+    @PostMapping("/lock-update-only")
+    public Result<LockStockFlowContext> lockUpdateOnly(@Valid @RequestBody StockCommandRequest req) {
+        LockStockFlowContext ctx = stockService.lockStockUpdateOnly(req.getGoodsId(), req.getQty());
+        return Result.success(ctx);
+    }
+
+    /**
+     * 写入库存流水（V3 异步补写等场景）。
+     * <p>
+     * 对应 {@code StockService#writeFlow}。
+     * </p>
+     */
+    @PostMapping("/write-flow")
+    public Result<Void> writeFlow(@RequestBody WriteFlowRequest req) {
+        if (req == null || req.getGoodsId() == null) {
+            return Result.fail("goodsId 不能为空");
+        }
+        stockService.writeFlow(
+                req.getGoodsId(),
+                req.getGoodsName(),
+                req.getBeforeStock(),
+                req.getChangeStock(),
+                req.getAfterStock(),
+                req.getOperateType(),
+                req.getBizNo(),
+                req.getRemark()
+        );
+        return Result.success();
+    }
+
+    /**
+     * 压测辅助：重置指定商品的 stock / lockStock。
+     * <p>
+     * <b>仅压测辅助，后续可加 Profile（如 {@code @Profile("dev")}）限制。</b>
+     * 幂等更新：按 goodsId 覆盖写入，重复调用结果一致。
+     * </p>
+     *
+     * @param req goodsId、stock、lockStock（也可通过 query 传参，见下方重载）
+     */
+    @PostMapping("/dev/reset-stock")
+    public Result<Void> resetStock(
+            @RequestBody(required = false) ResetStockRequest req,
+            @RequestParam(required = false) Long goodsId,
+            @RequestParam(required = false) Integer stock,
+            @RequestParam(required = false) Integer lockStock) {
+
+        Long targetGoodsId = goodsId;
+        Integer targetStock = stock;
+        Integer targetLockStock = lockStock;
+        if (req != null) {
+            if (req.getGoodsId() != null) {
+                targetGoodsId = req.getGoodsId();
+            }
+            if (req.getStock() != null) {
+                targetStock = req.getStock();
+            }
+            if (req.getLockStock() != null) {
+                targetLockStock = req.getLockStock();
+            }
+        }
+
+        if (targetGoodsId == null) {
+            return Result.fail("goodsId 不能为空");
+        }
+        if (targetStock == null || targetStock < 0) {
+            return Result.fail("stock 无效");
+        }
+        if (targetLockStock == null || targetLockStock < 0) {
+            return Result.fail("lockStock 无效");
+        }
+
+        LambdaUpdateWrapper<InventoryStock> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(InventoryStock::getGoodsId, targetGoodsId)
+                .set(InventoryStock::getStock, targetStock)
+                .set(InventoryStock::getLockStock, targetLockStock)
+                .set(InventoryStock::getUpdateTime, LocalDateTime.now());
+
+        int rows = inventoryStockMapper.update(null, updateWrapper);
+        if (rows == 0) {
+            return Result.fail("未找到该商品的库存记录，goodsId=" + targetGoodsId);
+        }
+        return Result.success();
     }
 
     /**

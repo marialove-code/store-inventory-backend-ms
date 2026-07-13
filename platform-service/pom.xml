@@ -12,7 +12,7 @@
 
     <artifactId>platform-service</artifactId>
     <name>platform-service</name>
-    <description>骞冲彴鏈嶅姟锛圥4锛氳璇?鍟嗗搧/绯荤粺/鐩戞帶/鐪嬫澘/闂ㄥ簵锛孒TTP 璋冨簱瀛樺唴閮?API锛?/description>
+    <description>平台服务（P4：认证/商品/系统/监控/看板/门店，HTTP 调库存内部 API）</description>
 
     <dependencies>
         <dependency>

@@ -12,7 +12,7 @@
 
     <artifactId>order-service</artifactId>
     <name>order-service</name>
-    <description>璁㈠崟鏈嶅姟锛圥2锛氳鍗?鍙戣揣/閫€娆撅紝HTTP 璋冨簱瀛樺唴閮?API锛?/description>
+    <description>订单服务（P2：订单/发货/退款，HTTP 调库存内部 API；含 concurrency 压测包）</description>
 
     <dependencies>
         <dependency>
@@ -23,23 +23,23 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- 鍙傛暟鏍￠獙锛圖TO @Valid锛?-->
+        <!-- 参数校验（DTO @Valid） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <!-- MyBatis-Plus + 鏁版嵁婧愯嚜鍔ㄩ厤缃?-->
+        <!-- MyBatis-Plus + 数据源自动配置 -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
-        <!-- PostgreSQL 椹卞姩锛堢増鏈敱 Spring Boot BOM 绠＄悊锛?-->
+        <!-- PostgreSQL 驱动（版本由 Spring Boot BOM 管理） -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- BeanUtil銆丼trUtil 绛?-->
+        <!-- BeanUtil、StrUtil 等 -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>

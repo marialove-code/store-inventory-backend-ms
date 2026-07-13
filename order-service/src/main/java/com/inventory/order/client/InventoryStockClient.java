@@ -1,5 +1,8 @@
 package com.inventory.order.client;
 
+import com.inventory.common.client.dto.LockStockFlowContext;
+import com.inventory.common.client.dto.ResetStockRequest;
+import com.inventory.common.client.dto.WriteFlowRequest;
 import com.inventory.common.exception.BusinessException;
 import com.inventory.common.response.Result;
 import com.inventory.common.response.ResultCode;
@@ -21,7 +24,7 @@ import java.util.Map;
  * 库存服务远程客户端（RestTemplate）。
  * <p>
  * 封装对 {@code inventory-service} 内部命令 API 的调用：
- * {@code /inventory/internal/lock|unlock|decrease-flow|increase|usable}。
+ * {@code /inventory/internal/lock|unlock|decrease-flow|increase|usable|lock-update-only|write-flow|dev/reset-stock}。
  * </p>
  * <p>
  * <b>设计约束：</b>
@@ -53,14 +56,138 @@ public class InventoryStockClient {
     }
 
     /**
-     * 锁定库存（下单预占）。对应库存 POST /inventory/internal/lock
+     * 锁定库存（下单预占，带业务单号）。对应库存 POST /inventory/internal/lock
+     * <p>
+     * 传入 orderNo 作为 bizNo 时，库存侧走 V4 原子锁定 {@code lockStockAtomically}。
+     * </p>
      *
      * @param goodsId 商品 ID
      * @param qty     锁定数量
-     * @param orderNo 订单号，作为 bizNo 传入，库存侧可走原子锁
+     * @param orderNo 订单号，作为 bizNo 传入
      */
     public void lock(Long goodsId, Integer qty, String orderNo) {
         postCommand("/inventory/internal/lock", StockCommandRequest.of(goodsId, qty, orderNo), "锁定库存");
+    }
+
+    /**
+     * 非原子锁定库存（V1/V2 压测基线）。
+     * <p>
+     * 对应 POST /inventory/internal/lock，<b>不传 bizNo</b>，
+     * 库存侧走普通 {@code lockStock}（读-改-写，可复现超锁）。
+     * </p>
+     *
+     * @param goodsId 商品 ID
+     * @param qty     锁定数量
+     */
+    public void lockNonAtomic(Long goodsId, Integer qty) {
+        postCommand("/inventory/internal/lock", StockCommandRequest.of(goodsId, qty), "非原子锁定库存");
+    }
+
+    /**
+     * V3：仅更新 lock_stock，不写流水。
+     * <p>
+     * 对应 POST /inventory/internal/lock-update-only，返回异步写流水所需上下文。
+     * </p>
+     *
+     * @param goodsId 商品 ID
+     * @param qty     锁定数量
+     * @return 流水上下文
+     */
+    public LockStockFlowContext lockUpdateOnly(Long goodsId, Integer qty) {
+        String url = baseUrl + "/inventory/internal/lock-update-only";
+        try {
+            ResponseEntity<Result<LockStockFlowContext>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(StockCommandRequest.of(goodsId, qty)),
+                    new ParameterizedTypeReference<Result<LockStockFlowContext>>() {
+                    }
+            );
+            Result<LockStockFlowContext> result = response.getBody();
+            assertSuccess(result, "仅更新锁定库存");
+            return result.getData();
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (RestClientException ex) {
+            log.error("【库存远程】仅更新锁定库存 HTTP 失败 goodsId={}, qty={}", goodsId, qty, ex);
+            throw new BusinessException(ResultCode.FAIL.getCode(),
+                    "调用库存服务失败（仅更新锁定库存）：" + ex.getMessage());
+        }
+    }
+
+    /**
+     * 写入库存流水（V3 异步补写）。
+     * <p>
+     * 对应 POST /inventory/internal/write-flow。
+     * </p>
+     */
+    public void writeFlow(
+            Long goodsId,
+            String goodsName,
+            Integer beforeStock,
+            Integer changeStock,
+            Integer afterStock,
+            Integer operateType,
+            String bizNo,
+            String remark) {
+        WriteFlowRequest req = new WriteFlowRequest();
+        req.setGoodsId(goodsId);
+        req.setGoodsName(goodsName);
+        req.setBeforeStock(beforeStock);
+        req.setChangeStock(changeStock);
+        req.setAfterStock(afterStock);
+        req.setOperateType(operateType);
+        req.setBizNo(bizNo);
+        req.setRemark(remark);
+
+        String url = baseUrl + "/inventory/internal/write-flow";
+        try {
+            ResponseEntity<Result<Void>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(req),
+                    new ParameterizedTypeReference<Result<Void>>() {
+                    }
+            );
+            assertSuccess(response.getBody(), "写入库存流水");
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (RestClientException ex) {
+            log.error("【库存远程】写入库存流水 HTTP 失败 goodsId={}, bizNo={}", goodsId, bizNo, ex);
+            throw new BusinessException(ResultCode.FAIL.getCode(),
+                    "调用库存服务失败（写入库存流水）：" + ex.getMessage());
+        }
+    }
+
+    /**
+     * 压测辅助：重置商品 stock / lockStock。
+     * <p>
+     * 对应 POST /inventory/internal/dev/reset-stock（仅压测，后续可加 Profile）。
+     * </p>
+     */
+    public void resetStock(Long goodsId, Integer stock, Integer lockStock) {
+        ResetStockRequest req = new ResetStockRequest();
+        req.setGoodsId(goodsId);
+        req.setStock(stock);
+        req.setLockStock(lockStock);
+
+        String url = baseUrl + "/inventory/internal/dev/reset-stock";
+        try {
+            ResponseEntity<Result<Void>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(req),
+                    new ParameterizedTypeReference<Result<Void>>() {
+                    }
+            );
+            assertSuccess(response.getBody(), "重置库存");
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (RestClientException ex) {
+            log.error("【库存远程】重置库存 HTTP 失败 goodsId={}", goodsId, ex);
+            throw new BusinessException(ResultCode.FAIL.getCode(),
+                    "调用库存服务失败（重置库存）：" + ex.getMessage());
+        }
     }
 
     /**
@@ -90,7 +217,7 @@ public class InventoryStockClient {
     }
 
     /**
-     * 查询可用库存快照：stock / lockStock / usableStock。
+     * 查询可用库存快照：stock / lockStock / usableStock / goodsName。
      * 对应库存 GET /inventory/internal/usable?goodsId=
      *
      * @return 库存快照 Map（至少含 usableStock）

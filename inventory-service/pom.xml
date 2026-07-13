@@ -12,7 +12,7 @@
 
     <artifactId>inventory-service</artifactId>
     <name>inventory-service</name>
-    <description>搴撳瓨鏈嶅姟锛圥1锛氬簱瀛樻牳蹇冭鍐欙紝杩炲悓涓€ PostgreSQL锛?/description>
+    <description>库存服务（P1：库存核心读写，连同一 PostgreSQL）</description>
 
     <dependencies>
         <dependency>

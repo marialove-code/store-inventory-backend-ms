@@ -1,0 +1,5 @@
+# order-service · dev 环境说明
+#
+# application.yml 已默认 spring.profiles.active=dev，
+# 以便加载 com.inventory.modules.order.concurrency.dev.OrderConcurrencyDevController。
+# 本文件可按需补充 dev 专属覆盖项；当前留空即可。

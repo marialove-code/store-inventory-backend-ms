@@ -1,6 +1,6 @@
 package com.inventory.modules.invertory.stock.service;
 
-import com.inventory.modules.invertory.stock.dto.LockStockFlowContext;
+import com.inventory.common.client.dto.LockStockFlowContext;
 
 /**
  * 核心库存业务服务。

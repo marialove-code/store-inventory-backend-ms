@@ -3,7 +3,7 @@ package com.inventory.modules.invertory.stock.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.inventory.modules.invertory.stock.dto.LockStockFlowContext;
+import com.inventory.common.client.dto.LockStockFlowContext;
 import com.inventory.modules.invertory.stock.entity.InventoryStock;
 import com.inventory.modules.invertory.stock.mapper.InventoryStockMapper;
 import com.inventory.modules.invertory.stock.service.StockService;
