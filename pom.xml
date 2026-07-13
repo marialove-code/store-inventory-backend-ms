@@ -27,6 +27,9 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>3.2.5</spring-boot.version>
         <maven.compiler.release>17</maven.compiler.release>
+        <!-- P1：库存核心依赖版本 -->
+        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <hutool.version>5.8.22</hutool.version>
     </properties>
 
     <dependencyManagement>
@@ -43,6 +46,23 @@
                 <groupId>com.inventory</groupId>
                 <artifactId>inventory-common</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <!-- MyBatis-Plus（Spring Boot 3） -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-core</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <!-- Hutool（雪花 ID、Bean 拷贝等） -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

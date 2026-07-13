@@ -12,7 +12,7 @@
 
     <artifactId>inventory-common</artifactId>
     <name>inventory-common</name>
-    <description>微服务公共模块：统一返回体、业务异常等（无启动类）</description>
+    <description>微服务公共模块：统一返回体、业务异常、分页等（无启动类）</description>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -20,6 +20,11 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        <!-- PageResult 依赖 IPage；仅引入 core，不拉 Spring 启动器 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

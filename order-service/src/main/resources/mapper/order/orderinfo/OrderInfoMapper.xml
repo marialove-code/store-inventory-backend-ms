@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.inventory.modules.order.orderinfo.mapper.OrderInfoMapper">
+
+    <!-- P2：仅保留结果映射；业务走 MyBatis-Plus BaseMapper，仪表盘统计 SQL 不迁 -->
+    <resultMap id="BaseResultMap" type="com.inventory.modules.order.orderinfo.entity.OrderInfo">
+        <id property="id" column="id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="goodsName" column="goods_name"/>
+        <result property="costPrice" column="cost_price"/>
+        <result property="salePrice" column="sale_price"/>
+        <result property="buyQty" column="buy_qty"/>
+        <result property="orderAmount" column="order_amount"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="payTime" column="pay_time"/>
+        <result property="logisticsNo" column="logistics_no"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="receiveTime" column="receive_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, order_no, user_id, user_name, goods_id, goods_name,
+        cost_price, sale_price, buy_qty, order_amount, order_status,
+        pay_time, logistics_no, remark, create_time, update_time, receive_time
+    </sql>
+
+</mapper>

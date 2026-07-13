@@ -12,7 +12,7 @@
 
     <artifactId>inventory-service</artifactId>
     <name>inventory-service</name>
-    <description>库存服务（P0 空壳可启动，业务后续从单体迁入）</description>
+    <description>库存服务（P1：库存核心读写，连同一 PostgreSQL）</description>
 
     <dependencies>
         <dependency>
@@ -22,6 +22,27 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- 参数校验（命令式 API DTO） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- MyBatis-Plus + 数据源自动配置 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+        <!-- PostgreSQL 驱动（版本由 Spring Boot BOM 管理） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- 雪花 ID、BeanUtil、StrUtil 等 -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

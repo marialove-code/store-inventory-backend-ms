@@ -5,13 +5,13 @@
 > - **不要**与家里在用的单体仓 `store-inventory-backend`（8080）混用  
 > - 业务从单体**渐进迁入**，本仓从 0 搭多模块骨架  
 
-## 当前结构（P0 已完成）
+## 当前结构（P2 已完成）
 
 ```text
 store-inventory-backend-ms/          # 父 POM（packaging=pom）
-├── inventory-common                 # 公共 jar：Result / BusinessException
+├── inventory-common                 # 公共 jar：Result / 枚举 / 单号工具
 ├── inventory-service                # 库存服务  端口 8082  context-path=/api
-└── order-service                    # 订单服务  端口 8083  context-path=/api
+└── order-service                    # 订单服务  端口 8083  context-path=/api（HTTP 调库存）
 ```
 
 | 服务 | 端口 | 探活 |
@@ -24,21 +24,23 @@ store-inventory-backend-ms/          # 父 POM（packaging=pom）
 
 ```powershell
 cd e:\Projects\store-inventory-backend-ms
+$env:DB_PWD="你的库密码"
 mvn clean install -DskipTests
 
-# 终端 1
+# 终端 1（先库存）
 cd inventory-service
 mvn spring-boot:run
 
-# 终端 2
+# 终端 2（再订单）
 cd order-service
 mvn spring-boot:run
 ```
 
 ## 阶段说明
 
-- **P0（当前）**：父子工程 + 两空服务可启动  
-- **P1**：迁库存核心读写  
-- **P3+**：订单调库存（HTTP → Feign → Nacos）  
+- **P0**：父子工程 + 两空服务可启动  
+- **P1**：迁库存核心读写 + `/inventory/internal/**`  
+- **P2（当前）**：迁订单正式业务，RestTemplate 调库存内部 API  
+- **P3+**：Feign → Nacos  
 
 详见 [docs/微服务拆分-起步.md](docs/微服务拆分-起步.md)

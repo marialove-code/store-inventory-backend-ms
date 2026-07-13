@@ -6,9 +6,24 @@ server:
 spring:
   application:
     name: inventory-service
+  datasource:
+    # 与单体共用同一 PostgreSQL，便于渐进拆分时数据一致
+    url: jdbc:postgresql://127.0.0.1:5432/inventory_store
+    username: inventory_user
+    password: ${DB_PWD:}
+    driver-class-name: org.postgresql.Driver
 
-# P0 不连数据库；后续阶段再配置 datasource
+# MyBatis-Plus：扫描 mapper XML、下划线转驼峰、雪花主键
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
 logging:
   level:
     root: INFO
     com.inventory.stock: INFO
+    com.inventory.modules.invertory: INFO
