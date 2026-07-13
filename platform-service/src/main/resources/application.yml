@@ -57,7 +57,7 @@ jwt:
 
 # 跨域与上传（对齐单体 application-dev.yml）
 app:
-  version: v2.0.0
+  version: v3.0.0
   cors:
     allowed-origins: http://localhost:5173
   upload:

@@ -7,44 +7,44 @@
     <parent>
         <groupId>com.inventory</groupId>
         <artifactId>store-inventory-backend-ms</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>3.0.0</version>
     </parent>
 
     <artifactId>inventory-common</artifactId>
     <name>inventory-common</name>
-    <description>微服务公共模块：统一返回体、业务异常、分页、跨服务 DTO 等（无启动类）</description>
+    <description>寰湇鍔″叕鍏辨ā鍧楋細缁熶竴杩斿洖浣撱€佷笟鍔″紓甯搞€佸垎椤点€佽法鏈嶅姟 DTO 绛夛紙鏃犲惎鍔ㄧ被锛?/description>
     <packaging>jar</packaging>
 
     <dependencies>
-        <!-- JSON 序列化注解（Result 使用） -->
+        <!-- JSON 搴忓垪鍖栨敞瑙ｏ紙Result 浣跨敤锛?-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
         </dependency>
-        <!-- PageResult 依赖 IPage；仅引入 core，不拉 Spring 启动器 -->
+        <!-- PageResult 渚濊禆 IPage锛涗粎寮曞叆 core锛屼笉鎷?Spring 鍚姩鍣?-->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-core</artifactId>
         </dependency>
-        <!-- IpUtils 需要 HttpServletRequest；provided 避免与业务服务 web 启动器冲突 -->
+        <!-- IpUtils 闇€瑕?HttpServletRequest锛沺rovided 閬垮厤涓庝笟鍔℃湇鍔?web 鍚姩鍣ㄥ啿绐?-->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!-- servlet API（IpUtils 直接引用 HttpServletRequest） -->
+        <!-- servlet API锛圛pUtils 鐩存帴寮曠敤 HttpServletRequest锛?-->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!-- ValidationUtils 需要 jakarta.validation.Validator -->
+        <!-- ValidationUtils 闇€瑕?jakarta.validation.Validator -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!-- IpUtils 使用 Hutool StrUtil -->
+        <!-- IpUtils 浣跨敤 Hutool StrUtil -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
