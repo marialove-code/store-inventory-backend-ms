@@ -1,9 +1,13 @@
-# 门店简易记账 · 后端
+# 门店简易记账 · 后端（微服务学习仓）
 
-> 最初给自家门店用，帮母亲替代手工记账；从「门店销售 + 总览」起步，完善为 v1.0 进销存闭环，现已发布 **v2.0.0（AI 全接入）**。  
-> 开源仅供**技术交流、学习展示**，自用项目。
+> ⚠️ **本目录是微服务拆分学习副本（`store-inventory-backend-ms`）**  
+> - 从单体标签 **v2.0.0** 检出，分支 `ms/dev`  
+> - **不要**与家里在用的单体仓 `store-inventory-backend` 混用、误推  
+> - 单体继续跑生产/家庭使用；本仓用**不同端口**做订单 + 库存拆分实验  
 
-[![Version](https://img.shields.io/badge/Version-v2.0.0-blue.svg)](#)
+> 最初给自家门店用，帮母亲替代手工记账；单体已发布 **v2.0.0（AI 全接入）**。本仓在其基础上做微服务演进学习。
+
+[![Version](https://img.shields.io/badge/Version-ms--from--v2.0.0-orange.svg)](#)
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
