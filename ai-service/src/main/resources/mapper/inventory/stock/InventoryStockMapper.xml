@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.inventory.modules.invertory.stock.mapper.InventoryStockMapper">
+
+    <select id="getTotalStock" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(stock), 0) FROM inventory_stock
+    </select>
+
+    <select id="getWarnStockCount" resultType="java.lang.Integer">
+        SELECT COUNT(1) FROM inventory_stock WHERE stock &lt; stock_warn
+    </select>
+</mapper>
