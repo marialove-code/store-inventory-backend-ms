@@ -5,7 +5,13 @@ server:
 
 spring:
   application:
+    # 注册到 Nacos 时的服务名
     name: ai-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        prefer-ip-address: true
   datasource:
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user

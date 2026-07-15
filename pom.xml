@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-      P0 父工程：只做依赖版本与模块聚合，本身不启动。
-      业务代码从单体渐进迁入 platform / inventory / order / ai 等服务。
+      父工程：只做依赖版本与模块聚合，本身不启动。
+      治理层第 1 步：引入 Spring Cloud / Spring Cloud Alibaba BOM（仅管版本，业务未接入）。
     -->
     <groupId>com.inventory</groupId>
     <artifactId>store-inventory-backend-ms</artifactId>
@@ -21,6 +21,7 @@
         <module>inventory-service</module>
         <module>order-service</module>
         <module>ai-service</module>
+        <module>gateway-service</module>
     </modules>
 
     <properties>
@@ -28,6 +29,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>3.2.5</spring-boot.version>
+        <!--
+          与 Boot 3.2.x 官方对齐（SCA 文档推荐组合）：
+          Spring Boot 3.2.x → Spring Cloud 2023.0.1 → Spring Cloud Alibaba 2023.0.1.0
+          客户端 Nacos 版本由 SCA BOM 管理（约 2.3.x），与本机 Nacos Server 2.5.2 可互通。
+        -->
+        <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
         <maven.compiler.release>17</maven.compiler.release>
         <!-- P1：库存核心依赖版本 -->
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
@@ -50,10 +58,30 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!--
+              Spring AI BOM 须排在 SCA 之前：Maven 对同坐标以「先声明」为准。
+              SCA 2023.0.1.0 会带入较旧的 spring-ai-core（0.8.x），会冲掉本项目 1.0.0-M6。
+            -->
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud：OpenFeign、LoadBalancer、Gateway 等版本由该 BOM 统一管理 -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud Alibaba：Nacos Discovery/Config、Sentinel 等版本由该 BOM 统一管理 -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

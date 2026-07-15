@@ -3,6 +3,8 @@ package com.inventory.platform;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -10,15 +12,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 平台服务启动类（P4）。
  * <p>
  * <b>职责：</b>承接原单体中的认证、商品/分类/品牌、系统用户角色权限、
- * 监控、看板、门店等「平台侧」能力；库存写操作通过 HTTP 调用 inventory-service，
+ * 监控、看板、门店等「平台侧」能力；库存写操作通过 Feign 调用 inventory-service，
  * 订单域由 order-service 独立承载。
  * </p>
  * <p>
  * 扫描 {@code com.inventory}，以便加载 framework/config/modules 与 {@code com.inventory.platform.*}。
  * {@link MapperScan} 仅精确扫描 Mapper 包，避免把 Service 接口误注册成 Mapper Bean。
  * </p>
+ * <p>
+ * {@link EnableDiscoveryClient}：向 Nacos 注册；{@link EnableFeignClients}：按服务名发现并调用库存。
+ * </p>
  */
 @SpringBootApplication(scanBasePackages = "com.inventory")
+@EnableDiscoveryClient
+@EnableFeignClients(basePackages = "com.inventory.platform.client")
 @EnableAsync
 @EnableScheduling
 @MapperScan({

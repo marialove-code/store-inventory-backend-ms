@@ -13,7 +13,15 @@ server:
 
 spring:
   application:
+    # 注册到 Nacos 时的服务名（其他服务将来按此名字发现本服务）
     name: platform-service
+  cloud:
+    nacos:
+      discovery:
+        # 本机 Nacos 地址；未开鉴权时不必配 username/password
+        server-addr: 127.0.0.1:8848
+        # 控制台「服务列表」里更易看到本机 IP
+        prefer-ip-address: true
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
@@ -67,10 +75,7 @@ app:
     brand-image-path: E:/Image/upload/brand/
     brand-image-prefix: /upload/brand/
 
-# 库存服务根地址（含 context-path）；客户端再拼 /inventory/internal/**
-inventory:
-  service:
-    base-url: http://localhost:8082/api
+# 库存调用已改为 Feign：按服务名 inventory-service 从 Nacos 发现，不再配置 base-url
 
 # MyBatis-Plus（含逻辑删除，与单体一致）
 mybatis-plus:

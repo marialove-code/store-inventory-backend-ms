@@ -4,73 +4,41 @@ import com.inventory.common.client.dto.StockInitRequest;
 import com.inventory.common.exception.BusinessException;
 import com.inventory.common.response.Result;
 import com.inventory.common.response.ResultCode;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
 
 /**
- * 库存服务远程客户端（平台侧，RestTemplate）。
+ * 库存服务远程客户端门面（平台侧）。
  * <p>
- * 封装对 {@code inventory-service} 内部 API 的调用，风格对齐 order-service 的
- * {@code InventoryStockClient}：解析统一 {@link Result}，失败抛 {@link BusinessException}，不吞异常。
+ * 对业务层仍暴露原方法签名；底层由 {@link InventoryStockFeignClient}
+ * 经 Nacos 按服务名 {@code inventory-service} 调用。
  * </p>
  * <p>
- * 主要场景：
- * <ul>
- *   <li>新增商品后 {@link #initStock} 初始化库存记录</li>
- *   <li>删除商品前 {@link #getStockSnapshot} / {@link #getUsable} 校验账面库存是否 &gt; 0</li>
- * </ul>
+ * 主要场景：新增商品 {@link #initStock}；删除前 {@link #getStockSnapshot} 校验账面库存。
  * </p>
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class InventoryStockClient {
 
-    private final RestTemplate restTemplate;
-
-    /**
-     * 库存服务根地址，如 http://localhost:8082/api
-     * （已含 context-path，后面再拼 /inventory/internal/**）
-     */
-    private final String baseUrl;
-
-    public InventoryStockClient(
-            RestTemplate restTemplate,
-            @Value("${inventory.service.base-url}") String baseUrl) {
-        this.restTemplate = restTemplate;
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-    }
+    private final InventoryStockFeignClient feignClient;
 
     /**
      * 平台新增商品后初始化库存。
      * 对应库存 POST /inventory/internal/init-stock（幂等：已有记录则成功返回）。
-     *
-     * @param request 含 goodsId / goodsName / categoryName / stockWarn 等
      */
     public void initStock(StockInitRequest request) {
-        String url = baseUrl + "/inventory/internal/init-stock";
         try {
-            ResponseEntity<Result<Void>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    new HttpEntity<>(request),
-                    new ParameterizedTypeReference<Result<Void>>() {
-                    }
-            );
-            assertSuccess(response.getBody(), "初始化库存");
+            assertSuccess(feignClient.initStock(request), "初始化库存");
         } catch (BusinessException ex) {
             throw ex;
-        } catch (RestClientException ex) {
-            log.error("【库存远程】初始化库存 HTTP 失败 url={}, body={}", url, request, ex);
+        } catch (FeignException ex) {
+            log.error("【库存远程】初始化库存 Feign 失败 body={}", request, ex);
             throw new BusinessException(ResultCode.FAIL.getCode(),
                     "调用库存服务失败（初始化库存）：" + ex.getMessage());
         }
@@ -78,24 +46,14 @@ public class InventoryStockClient {
 
     /**
      * 查询可用库存快照：stock / lockStock / usableStock。
-     * 对应库存 GET /inventory/internal/usable?goodsId=
-     * <p>
-     * 若库存记录不存在，返回 {@code null}（删除商品前可视为无库存、允许删除）；
-     * 其它业务失败仍抛 {@link BusinessException}。
-     * </p>
-     *
-     * @param goodsId 商品 ID
-     * @return 快照 Map，或记录不存在时返回 null
+     * 若库存记录不存在，返回 {@code null}；其它业务失败仍抛 {@link BusinessException}。
      */
     public Map<String, Object> getUsable(Long goodsId) {
         return getStockSnapshot(goodsId);
     }
 
     /**
-     * 从快照中解析可用数量（usableStock）；记录不存在时抛业务异常。
-     * <p>
-     * 删除场景请优先用 {@link #getStockSnapshot}，以便区分「无记录」与「有库存」。
-     * </p>
+     * 从快照中解析可用数量；记录不存在时抛业务异常。
      */
     public int getUsableStock(Long goodsId) {
         Map<String, Object> snapshot = getStockSnapshot(goodsId);
@@ -110,29 +68,14 @@ public class InventoryStockClient {
     }
 
     /**
-     * 查询库存快照（至少含 stock / lockStock / usableStock）。
+     * 查询库存快照。
      * <p>
-     * 用于删除商品前校验：若返回 null（库存记录不存在）可视为可删；
-     * 若 {@code stock &gt; 0} 则不允许删除。
+     * 删除商品前：返回 null（记录不存在）可视为可删；{@code stock &gt; 0} 则不允许删除。
      * </p>
-     *
-     * @param goodsId 商品 ID
-     * @return 快照；库存记录不存在时返回 null
      */
     public Map<String, Object> getStockSnapshot(Long goodsId) {
-        String url = UriComponentsBuilder
-                .fromUriString(baseUrl + "/inventory/internal/usable")
-                .queryParam("goodsId", goodsId)
-                .toUriString();
         try {
-            ResponseEntity<Result<Map<String, Object>>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<Result<Map<String, Object>>>() {
-                    }
-            );
-            Result<Map<String, Object>> result = response.getBody();
+            Result<Map<String, Object>> result = feignClient.usable(goodsId);
             if (result == null) {
                 throw new BusinessException(ResultCode.FAIL.getCode(), "库存服务无响应（查询库存快照）");
             }
@@ -147,16 +90,13 @@ public class InventoryStockClient {
             return result.getData();
         } catch (BusinessException ex) {
             throw ex;
-        } catch (RestClientException ex) {
-            log.error("【库存远程】查询库存快照 HTTP 失败 goodsId={}", goodsId, ex);
+        } catch (FeignException ex) {
+            log.error("【库存远程】查询库存快照 Feign 失败 goodsId={}", goodsId, ex);
             throw new BusinessException(ResultCode.FAIL.getCode(),
                     "调用库存服务失败（查询库存快照）：" + ex.getMessage());
         }
     }
 
-    /**
-     * 校验 Result：null 或 code != 200 一律抛 BusinessException（不吞）。
-     */
     private void assertSuccess(Result<?> result, String actionLabel) {
         if (result == null) {
             throw new BusinessException(ResultCode.FAIL.getCode(),

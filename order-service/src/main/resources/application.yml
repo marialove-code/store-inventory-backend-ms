@@ -5,7 +5,13 @@ server:
 
 spring:
   application:
+    # 注册到 Nacos 时的服务名
     name: order-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        prefer-ip-address: true
   # 默认激活 dev，以便加载 concurrency 压测 Controller（@Profile("dev")）
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
@@ -25,11 +31,7 @@ mybatis-plus:
     db-config:
       id-type: assign_id
 
-# 库存服务地址（不含具体路径；客户端再拼 /inventory/internal/**）
-# 完整示例：http://localhost:8082/api + /inventory/internal/lock
-inventory:
-  service:
-    base-url: http://localhost:8082/api
+# 库存调用已改为 Feign：按服务名 inventory-service 从 Nacos 发现，不再配置 base-url
 
 logging:
   level:
