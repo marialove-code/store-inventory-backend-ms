@@ -7,61 +7,113 @@
 
 ## 1. 介绍
 
-Sentinel = 流量防护（限流 / 熔断 / 降级）。本演示只做 **QPS 限流**。
+Sentinel = 流量防护（限流 / 熔断 / 降级）。本演示先做 **QPS 限流**，再接 **Dashboard 控制台**。
 
 ## 2. 有什么用
 
-防止接口被打爆。本例把 `orderPing` 限成 **每秒 2 次**，连点就会失败，用来体会「被保护」。
+| 能力 | 本项目怎么用 |
+|------|----------------|
+| 代码限流 | 保护 `orderPing`，QPS=2 |
+| Dashboard | 看实时 QPS、在页面改流控规则（仍属内存，重启注意） |
 
-## 3. 怎么用（本项目已落地）
+## 3. 怎么用
+
+### 3.1 代码版（已落地）
 
 | 项 | 位置 |
 |----|------|
 | 依赖 | `spring-cloud-starter-alibaba-sentinel` |
-| 规则 | `SentinelFlowRuleConfig`（代码加载，QPS=2） |
+| 规则 | `SentinelFlowRuleConfig`（可用开关关闭） |
 | 注解 | `@SentinelResource("orderPing")` + `blockHandler` |
 | 接口 | `GET /api/order/ping` |
+| 控制台地址 | `spring.cloud.sentinel.transport.dashboard=127.0.0.1:8858` |
 
-启动日志应有：`【Sentinel】已加载流控规则 resource=orderPing, QPS=2`
+### 3.2 启动 Dashboard（你本机操作）
 
-### 实操验证
+版本与 SCA 对齐：**1.8.6**（勿用默认 8080，会和 Gateway 冲突）。
 
-```powershell
-# 快速连打 10 次（1 秒内应出现部分限流）
-1..10 | ForEach-Object { Invoke-RestMethod http://localhost:8083/api/order/ping; Start-Sleep -Milliseconds 50 }
+1. 下载：  
+   https://github.com/alibaba/Sentinel/releases/download/1.8.6/sentinel-dashboard-1.8.6.jar  
+
+   或浏览器打开：https://github.com/alibaba/Sentinel/releases/tag/1.8.6  
+
+2. 放到例如 `E:\tools\sentinel\`，启动：
+
+```cmd
+set JAVA_HOME=C:\Program Files\Java\jdk-17.0.19
+cd /d E:\tools\sentinel
+java -Dserver.port=8858 -jar sentinel-dashboard-1.8.6.jar
 ```
 
-或浏览器/Apifox 快速连点。  
-成功：`code=200`；限流：`触发 Sentinel 限流...`
+3. 浏览器：http://127.0.0.1:8858  
+   默认账号密码：`sentinel` / `sentinel`
+
+4. **重启 order-service**（已配 dashboard 地址）
+
+5. **先访问几次** ping（懒加载：没流量时控制台可能看不到应用）：
+
+```text
+http://localhost:8083/api/order/ping
+```
+
+6. 控制台左侧应出现应用名 **`order-service`**  
+   - **簇点链路**：能看到资源 `orderPing`  
+   - **流控规则**：可看到/修改 QPS（启动时代码已加载 QPS=2）
+
+### 3.3 在控制台改规则（体验）
+
+1. 流控规则 → 找到 `orderPing` → 编辑，把单机阈值改成 `5` → 保存  
+2. 再连点 ping：限流会变「松」一点  
+3. **重启 order-service**：又变回代码里的 QPS=2（见问题 P3）
+
+开关对比（无控制台也能做）：
+
+```yaml
+app.sentinel.order-ping-flow-enabled: true   # / false
+```
 
 ---
 
-## 4. 有什么问题（建议你亲自踩）
+## 4. 有什么问题
 
-| # | 问题 | 你怎么复现 |
-|---|------|------------|
-| P1 | 只加依赖、不加规则 → 怎么连点都不限流 | 将 `app.sentinel.order-ping-flow-enabled` 设为 `false` 后**重启** order-service |
-| P2 | 阈值太低 → 正常手速也被挡 | QPS=2 时慢慢点也容易中 |
-| P3 | 规则只在内存 | 若删掉代码规则、只靠 Dashboard 配，**重启服务规则没了** |
-| P4 | `@SentinelResource` 同类 `this.xxx()` 不生效 | 若抽私有方法自调用，限流可能无效（本演示 Controller 由 Spring 调用，正常） |
-| P5 | blockHandler 签名不对 → 限流时直接 500 | 末参必须是 `BlockException`，返回类型一致 |
+| # | 问题 | 怎么复现 |
+|---|------|----------|
+| P1 | 没规则 → 不限流 | `order-ping-flow-enabled=false` 后重启 |
+| P2 | QPS 太低 → 手速也会被挡 | 保持 QPS=2 连点 |
+| P3 | Dashboard 改的规则重启丢失 | 控制台改成 5 → 重启服务 → 又变回 2 |
+| P4 | 控制台没有应用 | 没起流量；或 `eager=true` 导致心跳时还没读到 dashboard 地址（日志：`Dashboard server address not configured`） |
+| P5 | Dashboard 用 8080 起不来或乱 | 与 Gateway 冲突 → 必须用 **8858** |
+| P6 | 版本不对 | Dashboard 与客户端差太多可能异常 → 用 1.8.6 |
+| P7 | 开了多个 Dashboard 进程 | 端口混乱，只保留一个 `8858` 进程 |
 
 ## 5. 怎么解决
 
 | 问题 | 解决 |
 |------|------|
-| P1 | 打开开关 `app.sentinel.order-ping-flow-enabled=true`（或保持默认）并重启 |
-| P2 | 调大 `rule.setCount(...)`，或按真实容量评估 |
-| P3 | 规则持久化（后续可接 Nacos）；学习阶段用代码加载可接受 |
-| P4 | 经 Spring Bean 调用；不要同类内部 this 调带注解方法 |
-| P5 | 按官方签名写 blockHandler |
+| P1 | 打开开关或控制台新增流控规则 |
+| P2 | 调大 count（代码或控制台） |
+| P3 | 学习阶段接受「内存规则」；生产再做 Nacos 持久化 |
+| P4 | `eager=false` + main 里提前设置 `csp.sentinel.dashboard.server`；**重启 order**；再访问几次 ping；刷新控制台 |
+| P5 | `java -Dserver.port=8858 -jar ...` |
+| P6 | 下载 1.8.6 的 dashboard jar |
+| P7 | 任务管理器结束多余 java，只留一个 Dashboard |
 
 ---
 
-## 刻意没做（后续）
+## 刻意还没做
 
-- Sentinel Dashboard 控制台（yml 里留了 8858 注释）  
-- Feign / Gateway 接入 Sentinel  
-- 熔断、热点参数、规则推 Nacos  
+- 规则持久化到 Nacos  
+- Feign / Gateway 接 Sentinel  
+- 熔断演示  
 
-先把 P1～P5 走通，再扩展。
+---
+
+## 端口一览（避免混）
+
+| 进程 | 端口 |
+|------|------|
+| Gateway | 8080 |
+| Nacos | 8848 |
+| **Sentinel Dashboard** | **8858** |
+| order-service | 8083 |
+| Sentinel 客户端回调 | 8719（默认） |

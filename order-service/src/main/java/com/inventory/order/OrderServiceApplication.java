@@ -30,6 +30,11 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 public class OrderServiceApplication {
 
     public static void main(String[] args) {
+        // Sentinel 心跳读的是系统属性 csp.sentinel.dashboard.server；
+        // 须在 Sentinel 首次初始化前设置，否则控制台左侧一直没有应用。
+        if (System.getProperty("csp.sentinel.dashboard.server") == null) {
+            System.setProperty("csp.sentinel.dashboard.server", "127.0.0.1:8858");
+        }
         SpringApplication.run(OrderServiceApplication.class, args);
     }
 }
