@@ -1,6 +1,6 @@
 # 治理层接入笔记（Nacos / Feign / Gateway）
 
-> 对应学习步骤 **第 1～7 步**（2026-07-15）。  
+> 对应学习步骤 **第 1～8 步**（含 Nacos Config 演示）。  
 > 业务拆分见 [`微服务拆分-起步.md`](./微服务拆分-起步.md)；面试题见 [`面试题-SpringCloudAlibaba.md`](./面试题-SpringCloudAlibaba.md)。
 
 ## 一句话总览
@@ -8,6 +8,7 @@
 ```text
 本机 Nacos → 父 POM 锁版本 → 四服务注册 → 弄清「注册≠调用」
 → order/platform 用 Feign 按服务名调库存 → Gateway 统一入口 → 前端只打 8080
+→ order 演示 Nacos Config（远程配置 + 可刷新）
 ```
 
 | 组件 | 端口 / 角色 |
@@ -157,9 +158,67 @@ Load balancer does not contain an instance for the service inventory-service
 
 ---
 
+## 第 8 步：Nacos Config（先在 order-service 演示）
+
+**注册发现**管「服务在哪」；**配置中心**管「配置从哪来、能否热更新」。
+
+### 代码改动（order-service）
+
+1. pom：`spring-cloud-starter-alibaba-nacos-config`（**不**再依赖 bootstrap）  
+2. `application.yml`：  
+   - `spring.cloud.nacos.server-addr`  
+   - `spring.config.import: nacos:order-service.yaml?group=DEFAULT_GROUP&refreshEnabled=true`  
+3. `OrderNacosDemoProperties`：`@Value` + `@RefreshScope`  
+4. `/order/ping` 回显 `nacosDemoMessage`  
+
+本地默认：`app.nacos-demo-message: local-default`。  
+
+> 不用 `optional:`：控制台没有该配置时启动会失败，避免静默退回本地默认值。  
+> 若暂时还没建配置、又想先启动：可改成 `optional:nacos:order-service.yaml?...`。
+
+### 你在 Nacos 控制台要建的配置
+
+1. **配置管理 → 配置列表 → 创建配置**  
+2. 填写：
+
+| 项 | 值 |
+|----|-----|
+| Data ID | `order-service.yaml`（必须与 import 一致） |
+| Group | `DEFAULT_GROUP` |
+| 配置格式 | YAML |
+| 配置内容 | 见下方 |
+
+```yaml
+app:
+  nacos-demo-message: from-nacos-config
+```
+
+3. 发布 → **重启 order-service**（第一次建议重启；之后改值可试热刷新）  
+4. 访问（经网关或直连均可）：
+
+```text
+GET http://localhost:8080/api/order/ping
+# 或 http://localhost:8083/api/order/ping
+```
+
+期望：`nacosDemoMessage` = `from-nacos-config`（不是 `local-default`）。
+
+5. **热刷新体验**：把 Nacos 里改成 `from-nacos-refresh`，发布后再打 ping（`@RefreshScope` 应更新，一般无需重启）。
+
+### 概念对照
+
+| 概念 | 含义 |
+|------|------|
+| Data ID | 配置文件名，常为 `服务名.yaml` |
+| Group | 分组，默认 `DEFAULT_GROUP` |
+| 命名空间 | 环境隔离（本机用 public） |
+| refreshEnabled | 是否监听变更并刷新 |
+
+---
+
 ## 当前未做（后续可选）
 
-- 第 8 步：Nacos Config  
+- 其它服务也迁配置到 Nacos、共享配置  
 - 网关鉴权统一、Sentinel、Seata、Docker/K8s、完整 CI/CD  
 
 ---
@@ -167,6 +226,7 @@ Load balancer does not contain an instance for the service inventory-service
 ## 本机联调检查清单
 
 1. Nacos 控制台能开，服务列表有 gateway + 四业务  
-2. IDEA 里五进程都已用**最新代码**重启（改 Feign/Gateway 后必须重启）  
+2. IDEA 里进程用最新代码重启  
 3. 前端改过 `vite.config.ts` 后需重启 `npm run dev`  
-4. 验证「停谁挂谁」时，先确认端口真正释放（避免 detach 卡住）  
+4. 验证「停谁挂谁」时，先确认端口真正释放  
+5. 第 8 步：Nacos 已建 `order-service.yaml`，`/order/ping` 能看到远程文案  

@@ -1,7 +1,7 @@
 # 面试题 · Spring Cloud Alibaba（当前进度）
 
-> 覆盖：微服务/集群/负载均衡基础原因 + 本仓库已落地的 Nacos、OpenFeign、LoadBalancer、Gateway。  
-> **后续边做边补**（Config / Sentinel / Seata 等）。  
+> 覆盖：微服务/集群/负载均衡基础原因 + Nacos 注册发现与 Config、OpenFeign、LoadBalancer、Gateway。  
+> **后续边做边补**（Sentinel / Seata 等）。  
 > 实操笔记：[`治理层接入笔记-Nacos-Feign-Gateway.md`](./治理层接入笔记-Nacos-Feign-Gateway.md)
 
 ---
@@ -304,9 +304,72 @@ SCA 可能管理较旧的 `spring-ai-core`。Maven 对同坐标以**先声明的
 
 ---
 
+## 7. Nacos Config（配置中心）
+
+### Q31：Nacos 注册发现和 Nacos Config 有什么区别？为什么还要配置中心？
+
+**答：**  
+
+| | 注册发现 | 配置中心 |
+|--|----------|----------|
+| 解决什么 | 服务在哪个 IP:端口 | 配置从哪读、能否集中改 |
+| 典型内容 | 实例列表 | yml 片段、开关、日志级别等 |
+
+**为什么要配置中心：** 多实例时改本地 yml 要改很多份并重启；放到 Nacos 可集中管理，配合刷新可少重启。  
+本项目第 8 步先在 `order-service` 用 `app.nacos-demo-message` 做演示。
+
+### Q32：DataId、Group、命名空间是什么？本项目 DataId 叫什么？
+
+**答：**  
+
+- **DataId**：配置的「文件名」，本演示为 `order-service.yaml`  
+- **Group**：分组，默认 `DEFAULT_GROUP`  
+- **命名空间**：环境隔离（dev/test/prod），本机常用 `public`  
+
+须与代码里 `spring.config.import` 写的 DataId/Group 一致，否则拉不到。
+
+### Q33：Boot 3 / SCA 2023 怎么接入 Nacos Config？还要 bootstrap.yml 吗？
+
+**答：**  
+推荐写法（本项目已采用，**不用 bootstrap**）：
+
+```yaml
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+  config:
+    import:
+      - nacos:order-service.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+```
+
+依赖只需：`spring-cloud-starter-alibaba-nacos-config`。  
+`bootstrap.yml` 是旧习惯（更早加载）；新版官方更推 `spring.config.import`。  
+两种都能用：import 失败时可临时加 bootstrap 排查；稳定后建议统一用 import。  
+
+Bean 用 `@Value` + `@RefreshScope` 读取并支持热更新。  
+控制台需已有对应 DataId；import 不加 `optional` 时拉不到会启动失败（便于发现配错）。
+
+### Q34：本地 yml 和 Nacos 配了同一项，以谁为准？如何动态刷新？
+
+**答：**  
+一般 **Nacos 远程配置会覆盖本地同名项**（具体以 PropertySource 优先级为准，面试可说「远程覆盖本地同 key」）。  
+动态刷新：import 带 `refreshEnabled=true`，Bean 上加 `@RefreshScope`（或支持刷新的 `@ConfigurationProperties` 用法）。  
+改 Nacos 并发布后，再请求即可看到新值，通常无需重启进程。
+
+### Q35：怎么验收本项目的 Nacos Config？
+
+**答：**  
+1. 控制台创建 `order-service.yaml`，内容含 `app.nacos-demo-message: from-nacos-config`  
+2. 重启 order-service  
+3. `GET /api/order/ping`，字段 `nacosDemoMessage` 应为远程值  
+4. 再改 Nacos 文案并发布，再 ping，验证热刷新  
+
+---
+
 ## 待补充（后续接入再写）
 
-- [ ] Nacos Config：DataId / Group、动态刷新  
+- [x] Nacos Config：DataId / Group、动态刷新（见 Q31～Q35）  
 - [ ] Sentinel：限流熔断降级  
 - [ ] Seata / 最终一致性  
 - [ ] 网关统一鉴权与跨域  

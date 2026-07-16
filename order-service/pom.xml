@@ -28,6 +28,11 @@
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
+        <!-- 治理层第 8 步：从 Nacos 拉取/刷新远程配置（用 spring.config.import，不用 bootstrap） -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
         <!-- 治理层第 5 步：按服务名调用库存（发现 + 负载均衡） -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
