@@ -18,6 +18,12 @@ spring:
         server-addr: ${spring.cloud.nacos.server-addr}
         file-extension: yaml
         group: DEFAULT_GROUP
+    # Sentinel：最小限流（规则见 SentinelFlowRuleConfig，QPS=2）
+    # Dashboard 可选：下载后取消注释 transport.dashboard，端口建议 8858
+    sentinel:
+      eager: true
+      # transport:
+      #   dashboard: 127.0.0.1:8858
   # Boot 2.4+ / SCA 推荐：不用 bootstrap，用 import 显式拉取
   # 不用 optional：拉不到配置时启动失败，便于发现问题（控制台需已有该 DataId）
   config:
@@ -47,6 +53,9 @@ mybatis-plus:
 # 本地默认值；Nacos 中同名项会覆盖
 app:
   nacos-demo-message: local-default
+  sentinel:
+    # 学习对比开关：true=加载 QPS=2；false=不加载规则（连点也不限流）
+    order-ping-flow-enabled: false
 
 logging:
   level:

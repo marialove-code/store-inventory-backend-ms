@@ -370,7 +370,7 @@ Bean 用 `@Value` + `@RefreshScope` 读取并支持热更新。
 ## 待补充（后续接入再写）
 
 - [x] Nacos Config：DataId / Group、动态刷新（见 Q31～Q35）  
-- [ ] Sentinel：限流熔断降级  
+- [ ] Sentinel：限流熔断降级（见 [`Sentinel最小限流-五步学习.md`](./Sentinel最小限流-五步学习.md)，实操进行中）  
 - [ ] Seata / 最终一致性  
 - [ ] 网关统一鉴权与跨域  
 - [ ] 配置加密、Nacos 鉴权  
