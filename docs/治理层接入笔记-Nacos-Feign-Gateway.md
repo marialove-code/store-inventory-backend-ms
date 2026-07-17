@@ -26,12 +26,20 @@
 
 ## 第 0 步：本机安装 Nacos（前置）
 
+> **一键复制命令**（Nacos + Sentinel）见：[`本机启动命令-Nacos-Sentinel.md`](./本机启动命令-Nacos-Sentinel.md)
+
 - 下载 **2.x** 发行包（学习用过 2.5.2），解压到无中文路径  
-- JDK 17 需配 `JAVA_HOME`；若遇 `InaccessibleObjectException`，启动加：  
-  `--add-opens=java.base/java.io=ALL-UNNAMED`  
-- 单机启动：`startup.cmd -m standalone`  
 - 控制台：http://127.0.0.1:8848/nacos （默认 nacos/nacos）  
 - **Eureka vs Nacos**：Eureka 常是一个 Spring Boot「注册中心项目」；Nacos 是独立中间件，业务仓只做 Client  
+
+本机启动（CMD，路径按你机器）：
+
+```cmd
+set JAVA_HOME=C:\Program Files\Java\jdk-17.0.19
+set CUSTOM_NACOS_MEMORY=-Xms512m -Xmx512m -Xmn256m --add-opens=java.base/java.io=ALL-UNNAMED
+cd /d E:\nacos-server-2.5.2\nacos\bin
+startup.cmd -m standalone
+```
 
 ---
 

@@ -1,7 +1,7 @@
 # 面试题 · Spring Cloud Alibaba（当前进度）
 
 > 覆盖：微服务/集群/负载均衡基础原因 + Nacos 注册发现与 Config、OpenFeign、LoadBalancer、Gateway。  
-> **后续边做边补**（Sentinel / Seata 等）。  
+> Sentinel 已单独成篇：[`面试题-Sentinel.md`](./面试题-Sentinel.md)。**后续边做边补**（Seata 等）。  
 > 实操笔记：[`治理层接入笔记-Nacos-Feign-Gateway.md`](./治理层接入笔记-Nacos-Feign-Gateway.md)
 
 ---
@@ -370,8 +370,8 @@ Bean 用 `@Value` + `@RefreshScope` 读取并支持热更新。
 ## 待补充（后续接入再写）
 
 - [x] Nacos Config：DataId / Group、动态刷新（见 Q31～Q35）  
-- [ ] Sentinel：限流熔断降级（见 [`Sentinel最小限流-五步学习.md`](./Sentinel最小限流-五步学习.md)，实操进行中）  
-- [ ] Seata / 最终一致性  
+- [x] Sentinel：限流熔断降级（见 [`面试题-Sentinel.md`](./面试题-Sentinel.md) + [`Sentinel最小限流-五步学习.md`](./Sentinel最小限流-五步学习.md)）  
+- [ ] Seata：分布式事务（概念优先，未接入） / 与最终一致性对比  
 - [ ] 网关统一鉴权与跨域  
 - [ ] 配置加密、Nacos 鉴权  
 - [ ] 与 K8s Service 发现的对比落地  

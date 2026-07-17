@@ -1,24 +1,36 @@
-# Sentinel 最小限流 · 五步学习 + 实操问题
+# Sentinel 最小限流 / 熔断 · 五步学习 + 实操问题
 
-> 范围：仅 `order-service` 的 `/api/order/ping`。  
-> 学习框架：介绍 → 有什么用 → 怎么用 → 有什么问题 → 怎么解决。
+> 范围：探活参考（ping / unstable）+ **真实业务**（下单 / 取消 + Feign 锁解锁库存）。  
+> 学习框架：介绍 → 有什么用 → 怎么用 → 有什么问题 → 怎么解决。  
+> **Nacos / Sentinel 启动命令速查：** [`本机启动命令-Nacos-Sentinel.md`](./本机启动命令-Nacos-Sentinel.md)  
+> **面试题（流控/熔断/热点等细节）：** [`面试题-Sentinel.md`](./面试题-Sentinel.md)
 
 ---
 
 ## 1. 介绍
 
-Sentinel = 流量防护（限流 / 熔断 / 降级）。本演示先做 **QPS 限流**，再接 **Dashboard 控制台**。
+Sentinel = 流量防护（限流 / 熔断 / 降级）。
+
+| 能力 | 一句话 | 本项目演示 |
+|------|--------|------------|
+| **限流** | 请求太多，拦住多余的 | `orderPing` QPS=2 |
+| **熔断** | 下游老失败/太慢，先断开一段时间 | `orderUnstable` 异常比例 ≥50% |
+
+二者都会抛 `BlockException` → 可走 `blockHandler`。
 
 ## 2. 有什么用
 
 | 能力 | 本项目怎么用 |
 |------|----------------|
-| 代码限流 | 保护 `orderPing`，QPS=2 |
-| Dashboard | 看实时 QPS、在页面改流控规则（仍属内存，重启注意） |
+| 代码限流（参考） | `orderPing` QPS=2 |
+| 代码限流（业务） | `orderCreate` / `orderCancel`（默认各 QPS=20，可配） |
+| 代码熔断（参考） | `orderUnstable` 异常比例 |
+| 代码熔断（业务） | `inventoryLock` / `inventoryUnlock`（Feign 锁/还库存） |
+| Dashboard | 看实时 QPS、在页面改规则（仍属内存，重启注意） |
 
 ## 3. 怎么用
 
-### 3.1 代码版（已落地）
+### 3.1 限流（已落地）
 
 | 项 | 位置 |
 |----|------|
@@ -28,16 +40,50 @@ Sentinel = 流量防护（限流 / 熔断 / 降级）。本演示先做 **QPS �
 | 接口 | `GET /api/order/ping` |
 | 控制台地址 | `spring.cloud.sentinel.transport.dashboard=127.0.0.1:8858` |
 
+### 3.1b 熔断（已落地）
+
+| 项 | 位置 |
+|----|------|
+| 规则 | `SentinelDegradeRuleConfig`（开关 `app.sentinel.order-unstable-degrade-enabled`） |
+| 注解 | `@SentinelResource("orderUnstable")` + `blockHandler` |
+| 接口 | `GET /api/order/demo/unstable?fail=true\|false` |
+
+**本机验证（重启 order-service 后）：**
+
+```text
+# 1）连续失败 ≥5 次（计入异常比例）
+http://127.0.0.1:8083/api/order/demo/unstable?fail=true
+
+# 2）立刻再打成功路径 —— 若已熔断，应走 blockHandler（提示熔断），而不是返回 OK
+http://127.0.0.1:8083/api/order/demo/unstable?fail=false
+
+# 3）等约 10 秒后再打 fail=false，应恢复返回 OK（半开探测成功）
+```
+
+也可经 Gateway：`http://127.0.0.1:8080/api/order/demo/unstable?fail=true`（需 Gateway + 路由已配）。
+
+### 3.1c 真实业务（已落地，ping 仍保留作参考）
+
+| 资源 | 挂载点 | 规则 |
+|------|--------|------|
+| `orderCreate` | `OrderInfoController#add` → `POST /api/order/info/add` | 流控 QPS（默认 20） |
+| `orderCancel` | `OrderInfoController#cancel` → `PUT /api/order/info/{id}/cancel` | 流控 QPS（默认 20） |
+| `inventoryLock` | `InventoryStockClient#lock` | 熔断（异常比例） |
+| `inventoryUnlock` | `InventoryStockClient#unlock` | 熔断（异常比例） |
+| `inventoryUsable` | `InventoryStockClient#getUsableStock`（下单入口；勿挂同类内部 getUsable，会自调用绕过 AOP） | 熔断（异常比例） |
+
+开关见 `application.yml`：`app.sentinel.order-business-flow-enabled`、`inventory-degrade-enabled`、`order-create-qps` 等。
+
+**验证建议：** 前端经 Gateway 正常下单/取消应不受影响（QPS=20）；想看限流可把 `order-create-qps` 改成 `2` 后重启 order，再连点下单。熔断可停掉 inventory 再连续下单，观察 `inventoryLock` 打开后快速失败。
+
 ### 3.2 启动 Dashboard（你本机操作）
 
-版本与 SCA 对齐：**1.8.6**（勿用默认 8080，会和 Gateway 冲突）。
+完整复制区见 [`本机启动命令-Nacos-Sentinel.md`](./本机启动命令-Nacos-Sentinel.md)。版本与 SCA 对齐：**1.8.6**（勿用 8080，用 **8858**）。
 
-1. 下载：  
+1. 下载 jar 放到 `E:\tools\sentinel\`：  
    https://github.com/alibaba/Sentinel/releases/download/1.8.6/sentinel-dashboard-1.8.6.jar  
 
-   或浏览器打开：https://github.com/alibaba/Sentinel/releases/tag/1.8.6  
-
-2. 放到例如 `E:\tools\sentinel\`，启动：
+2. 启动（CMD）：
 
 ```cmd
 set JAVA_HOME=C:\Program Files\Java\jdk-17.0.19
@@ -104,7 +150,7 @@ app.sentinel.order-ping-flow-enabled: true   # / false
 
 - 规则持久化到 Nacos  
 - Feign / Gateway 接 Sentinel  
-- 熔断演示  
+- 慢调用比例熔断（当前只做了异常比例）  
 
 ---
 

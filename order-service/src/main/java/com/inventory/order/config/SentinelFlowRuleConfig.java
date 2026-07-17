@@ -8,45 +8,61 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Sentinel 流控规则（学习用）。
+ * Sentinel 流控规则。
  * <p>
- * 资源名 {@code orderPing} 与 {@code OrderPingController} 上 {@code @SentinelResource} 一致。
- * 通过 {@code app.sentinel.order-ping-flow-enabled} 开关对比：
- * <ul>
- *   <li>true：加载 QPS=2 规则 → 连点会限流</li>
- *   <li>false：清空规则 → 怎么打都不限流（体会「没规则 = 不拦截」）</li>
- * </ul>
+ * {@link FlowRuleManager#loadRules} 会整体覆盖，故探活与业务规则在此一并加载。
  * </p>
  */
 @Slf4j
 @Component
 public class SentinelFlowRuleConfig {
 
-    public static final String RESOURCE_ORDER_PING = "orderPing";
+    /** @deprecated 请用 {@link SentinelResourceNames#ORDER_PING} */
+    public static final String RESOURCE_ORDER_PING = SentinelResourceNames.ORDER_PING;
 
-    /**
-     * 学习开关：是否为 orderPing 加载流控规则。
-     */
     @Value("${app.sentinel.order-ping-flow-enabled:true}")
     private boolean orderPingFlowEnabled;
 
+    /** 真实业务入口流控：下单 / 取消 */
+    @Value("${app.sentinel.order-business-flow-enabled:true}")
+    private boolean orderBusinessFlowEnabled;
+
+    @Value("${app.sentinel.order-create-qps:20}")
+    private double orderCreateQps;
+
+    @Value("${app.sentinel.order-cancel-qps:20}")
+    private double orderCancelQps;
+
     @PostConstruct
     public void initFlowRules() {
-        if (!orderPingFlowEnabled) {
-            FlowRuleManager.loadRules(Collections.emptyList());
-            log.warn("【Sentinel】已关闭 orderPing 流控（app.sentinel.order-ping-flow-enabled=false），连点也不会限流");
-            return;
+        List<FlowRule> rules = new ArrayList<>(4);
+
+        if (orderPingFlowEnabled) {
+            rules.add(qpsRule(SentinelResourceNames.ORDER_PING, 2));
+        } else {
+            log.warn("【Sentinel】未加载 orderPing 流控（app.sentinel.order-ping-flow-enabled=false）");
         }
 
-        FlowRule rule = new FlowRule();
-        rule.setResource(RESOURCE_ORDER_PING);
+        if (orderBusinessFlowEnabled) {
+            rules.add(qpsRule(SentinelResourceNames.ORDER_CREATE, orderCreateQps));
+            rules.add(qpsRule(SentinelResourceNames.ORDER_CANCEL, orderCancelQps));
+        } else {
+            log.warn("【Sentinel】未加载业务流控 orderCreate/orderCancel（order-business-flow-enabled=false）");
+        }
+
+        FlowRuleManager.loadRules(rules);
+        log.info("【Sentinel】已加载流控规则 {} 条：{}", rules.size(),
+                rules.stream().map(r -> r.getResource() + "(QPS=" + r.getCount() + ")").toList());
+    }
+
+    private static FlowRule qpsRule(String resource, double qps) {
+        FlowRule rule = new FlowRule(resource);
         rule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        // 每秒最多 2 次；超过则 BlockException → blockHandler
-        rule.setCount(2);
-        FlowRuleManager.loadRules(Collections.singletonList(rule));
-        log.info("【Sentinel】已加载流控规则 resource={}, QPS={}", RESOURCE_ORDER_PING, rule.getCount());
+        rule.setCount(qps);
+        return rule;
     }
 }

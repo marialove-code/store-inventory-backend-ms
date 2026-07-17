@@ -1,5 +1,7 @@
 package com.inventory.order.client;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.inventory.common.client.dto.LockStockFlowContext;
 import com.inventory.common.client.dto.ResetStockRequest;
 import com.inventory.common.client.dto.WriteFlowRequest;
@@ -7,6 +9,7 @@ import com.inventory.common.exception.BusinessException;
 import com.inventory.common.response.Result;
 import com.inventory.common.response.ResultCode;
 import com.inventory.order.client.dto.StockCommandRequest;
+import com.inventory.order.config.SentinelResourceNames;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,7 @@ import java.util.Map;
  * </p>
  * <p>
  * 解析统一 {@link Result}：code != 200 或 Feign/网络失败时抛 {@link BusinessException}，不吞异常。
+ * {@code lock}/{@code unlock} 挂 Sentinel 熔断：库存服务异常比例过高时快速失败。
  * </p>
  */
 @Slf4j
@@ -34,8 +38,20 @@ public class InventoryStockClient {
     /**
      * 锁定库存（下单预占，带业务单号）。对应库存 POST /inventory/internal/lock
      */
+    @SentinelResource(
+            value = SentinelResourceNames.INVENTORY_LOCK,
+            blockHandler = "lockBlockHandler"
+    )
     public void lock(Long goodsId, Integer qty, String orderNo) {
         postCommand(() -> feignClient.lock(StockCommandRequest.of(goodsId, qty, orderNo)), "锁定库存");
+    }
+
+    /**
+     * 锁库存被熔断/限流时：转为业务异常，由下单流程统一返回。
+     */
+    public void lockBlockHandler(Long goodsId, Integer qty, String orderNo, BlockException ex) {
+        throw new BusinessException(ResultCode.FAIL.getCode(),
+                "锁定库存触发 Sentinel 防护（资源 inventoryLock）：" + ex.getClass().getSimpleName());
     }
 
     /**
@@ -102,8 +118,17 @@ public class InventoryStockClient {
     /**
      * 释放锁定库存（取消订单）。
      */
+    @SentinelResource(
+            value = SentinelResourceNames.INVENTORY_UNLOCK,
+            blockHandler = "unlockBlockHandler"
+    )
     public void unlock(Long goodsId, Integer qty) {
         postCommand(() -> feignClient.unlock(StockCommandRequest.of(goodsId, qty)), "解锁库存");
+    }
+
+    public void unlockBlockHandler(Long goodsId, Integer qty, BlockException ex) {
+        throw new BusinessException(ResultCode.FAIL.getCode(),
+                "解锁库存触发 Sentinel 防护（资源 inventoryUnlock）：" + ex.getClass().getSimpleName());
     }
 
     /**
@@ -140,8 +165,16 @@ public class InventoryStockClient {
     }
 
     /**
-     * 从快照中解析可用数量；缺字段或类型异常时抛业务异常。
+     * 从快照中解析可用数量。
+     * <p>
+     * 下单入口调的是本方法（不是 {@link #getUsable}）。
+     * Sentinel 必须挂在这里：同类内部 {@code this.getUsable()} 不会走 AOP，挂在 getUsable 上等于没挂。
+     * </p>
      */
+    @SentinelResource(
+            value = SentinelResourceNames.INVENTORY_USABLE,
+            blockHandler = "usableStockBlockHandler"
+    )
     public int getUsableStock(Long goodsId) {
         Map<String, Object> snapshot = getUsable(goodsId);
         if (snapshot == null || snapshot.get("usableStock") == null) {
@@ -152,6 +185,11 @@ public class InventoryStockClient {
             return ((Number) raw).intValue();
         }
         throw new BusinessException(ResultCode.FAIL.getCode(), "usableStock 类型异常：" + raw);
+    }
+
+    public int usableStockBlockHandler(Long goodsId, BlockException ex) {
+        throw new BusinessException(ResultCode.FAIL.getCode(),
+                "查询可用库存触发 Sentinel 防护（资源 inventoryUsable）：" + ex.getClass().getSimpleName());
     }
 
     /**

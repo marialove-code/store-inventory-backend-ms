@@ -4,7 +4,7 @@ import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.inventory.common.response.Result;
 import com.inventory.order.config.OrderNacosDemoProperties;
-import com.inventory.order.config.SentinelFlowRuleConfig;
+import com.inventory.order.config.SentinelResourceNames;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,8 +16,7 @@ import java.util.Map;
 /**
  * P0 探活 + Nacos Config 演示 + Sentinel 限流演示。
  * <p>
- * {@link SentinelResource#value()} 须与 {@link SentinelFlowRuleConfig} 中规则资源名一致。
- * 快速连点本接口可触发限流，走 {@link #pingBlockHandler}。
+ * 探活 + 限流参考实现；真实业务见 {@code OrderInfoController} / {@code InventoryStockClient}。
  * </p>
  */
 @RestController
@@ -29,7 +28,7 @@ public class OrderPingController {
 
     @GetMapping("/ping")
     @SentinelResource(
-            value = SentinelFlowRuleConfig.RESOURCE_ORDER_PING,
+            value = SentinelResourceNames.ORDER_PING,
             blockHandler = "pingBlockHandler"
     )
     public Result<Map<String, String>> ping() {
