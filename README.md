@@ -60,4 +60,5 @@ mvn clean install -DskipTests
 - **P4（当前）**：platform-service（认证/商品/系统等照搬 + 跨服务库存 Client）  
 - **P5+**：Feign → Nacos → Gateway  
 
-详见 [docs/微服务拆分-起步.md](docs/微服务拆分-起步.md)
+详见 [docs/微服务拆分-起步.md](docs/微服务拆分-起步.md)  
+生产同机切流与配置/Linux 命令：[docs/单体到微服务-部署与配置手册.md](docs/单体到微服务-部署与配置手册.md)
