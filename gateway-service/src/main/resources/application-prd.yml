@@ -1,0 +1,3 @@
+# gateway · 服务器：默认 9080（也可 SERVER_PORT 覆盖）
+server:
+  port: ${SERVER_PORT:9080}

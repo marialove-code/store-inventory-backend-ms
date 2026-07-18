@@ -4,9 +4,9 @@
 > - 分支 `ms/dev`，远程 Gitee：`store-inventory-backend-ms`  
 > - **不要**与家里在用的单体仓 `store-inventory-backend`（8080）混用  
 
-## 当前结构（**v3.1.0** · 治理层 Sentinel 收口）
+## 当前结构（**v3.2.0** · 同机生产切流）
 
-> 标签 `v3.1.0`：在业务拆分基础上完成 Nacos/Feign/Gateway 与 Sentinel（限流+熔断挂真实下单），并补充面试与启动文档。
+> 标签 `v3.2.0`：在 v3.1.0 治理层基础上完成 dev/prd 配置拆分、同机部署脚本与域名 Nginx 切到微服务前端 + Gateway。
 
 ```text
 store-inventory-backend-ms/

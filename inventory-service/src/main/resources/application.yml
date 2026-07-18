@@ -1,11 +1,10 @@
-server:
-  port: 8082
-  servlet:
-    context-path: /api
-
+# ==============================
+# inventory-service · 公共配置
+# ==============================
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
-    # 注册到 Nacos 时的服务名
     name: inventory-service
   cloud:
     nacos:
@@ -13,13 +12,16 @@ spring:
         server-addr: 127.0.0.1:8848
         prefer-ip-address: true
   datasource:
-    # 与单体共用同一 PostgreSQL，便于渐进拆分时数据一致
+    driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user
     password: ${DB_PWD:}
-    driver-class-name: org.postgresql.Driver
 
-# MyBatis-Plus：扫描 mapper XML、下划线转驼峰、雪花主键
+server:
+  port: 8082
+  servlet:
+    context-path: /api
+
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
   configuration:

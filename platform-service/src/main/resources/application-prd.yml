@@ -1,0 +1,22 @@
+# platform-service · 服务器生产（对齐单体 application-prd.yml）
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+  datasource:
+    password: ${DB_PWD}
+
+app:
+  cors:
+    allowed-origins: https://www.nestparts.top,https://nestparts.top,http://localhost:5173,http://120.53.88.204:5173
+  upload:
+    avatar-path: /opt/upload/avatar/
+    product-image-path: /opt/upload/product/
+    product-image-prefix: https://www.nestparts.top/upload/product/
+    brand-image-path: /opt/upload/brand/
+    brand-image-prefix: https://www.nestparts.top/upload/brand/
+
+logging:
+  level:
+    root: INFO
+    com.inventory: INFO

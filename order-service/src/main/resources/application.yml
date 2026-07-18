@@ -1,15 +1,13 @@
-server:
-  port: 8083
-  servlet:
-    context-path: /api
-
+# ==============================
+# order-service · 公共配置
+# ==============================
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
-    # 须与 Nacos DataId 前缀一致（order-service.yaml）
     name: order-service
   cloud:
     nacos:
-      # 发现与配置共用地址（官方示例写在 nacos 这一层）
       server-addr: 127.0.0.1:8848
       discovery:
         server-addr: ${spring.cloud.nacos.server-addr}
@@ -18,29 +16,23 @@ spring:
         server-addr: ${spring.cloud.nacos.server-addr}
         file-extension: yaml
         group: DEFAULT_GROUP
-    # Sentinel：最小限流（规则见 SentinelFlowRuleConfig，QPS=2）
-    # Dashboard：8858。eager 必须为 false，否则心跳早于 Spring 注入地址，控制台永远看不到应用
     sentinel:
-      eager: true
       transport:
         dashboard: 127.0.0.1:8858
-        # port: 8719
-  # Boot 2.4+ / SCA 推荐：不用 bootstrap，用 import 显式拉取
-  # 不用 optional：拉不到配置时启动失败，便于发现问题（控制台需已有该 DataId）
   config:
     import:
-      - nacos:order-service.yaml?group=DEFAULT_GROUP&refreshEnabled=true
-  # 默认激活 dev，以便加载 concurrency 压测 Controller（@Profile("dev")）
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+      - optional:nacos:order-service.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   datasource:
-    # 与库存服务、单体共用同一 PostgreSQL，便于渐进拆分时数据一致
+    driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user
     password: ${DB_PWD:}
-    driver-class-name: org.postgresql.Driver
 
-# MyBatis-Plus：扫描 mapper XML、下划线转驼峰、雪花主键
+server:
+  port: 8083
+  servlet:
+    context-path: /api
+
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
   configuration:
@@ -49,21 +41,14 @@ mybatis-plus:
     db-config:
       id-type: assign_id
 
-# 库存调用已改为 Feign：按服务名 inventory-service 从 Nacos 发现，不再配置 base-url
-
-# 本地默认值；Nacos 中同名项会覆盖
 app:
   nacos-demo-message: local-default
   sentinel:
-    # 探活参考：orderPing QPS=2
     order-ping-flow-enabled: true
-    # 熔断演示：orderUnstable 异常比例
     order-unstable-degrade-enabled: true
-    # 真实业务：下单/取消入口流控（默认 QPS 较宽，正常点单不受影响；压测可调低）
     order-business-flow-enabled: true
     order-create-qps: 20
     order-cancel-qps: 20
-    # 真实业务：Feign 锁/解锁库存熔断
     inventory-degrade-enabled: true
 
 logging:

@@ -1,12 +1,10 @@
 # ==============================
-# gateway-service（治理层第 7 步）
-# 统一入口 8080；按路径转发到各业务服务（lb = 从 Nacos 按服务名选实例）
-# 下游服务均带 context-path=/api，故转发时保留 /api 前缀，不做 StripPrefix
+# gateway-service · 公共配置
+# 环境切换：spring.profiles.active = dev | prd
 # ==============================
-server:
-  port: 8080
-
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
     name: gateway-service
   cloud:
@@ -15,12 +13,10 @@ spring:
         server-addr: 127.0.0.1:8848
         prefer-ip-address: true
     gateway:
-      # 不自动为每个服务生成路由，改用下方显式规则（学习时更清晰）
       discovery:
         locator:
           enabled: false
       routes:
-        # 更具体的前缀写在前面
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
@@ -33,14 +29,12 @@ spring:
           uri: lb://ai-service
           predicates:
             - Path=/api/ai/**
-        # 静态上传：浏览器请求 /upload/**，平台实际在 /api/upload/**
         - id: platform-upload
           uri: lb://platform-service
           predicates:
             - Path=/upload/**
           filters:
             - RewritePath=/upload/(?<segment>.*), /api/upload/${segment}
-        # 其余 /api/** 走平台（auth / goods / system / dashboard 等）
         - id: platform-service
           uri: lb://platform-service
           predicates:

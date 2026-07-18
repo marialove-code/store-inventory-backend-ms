@@ -1,5 +1,14 @@
-# order-service · dev 环境说明
-#
-# application.yml 已默认 spring.profiles.active=dev，
-# 以便加载 com.inventory.modules.order.concurrency.dev.OrderConcurrencyDevController。
-# 本文件可按需补充 dev 专属覆盖项；当前留空即可。
+# order-service · 本地开发
+# profiles=dev 时会加载 concurrency 压测 Controller（@Profile("dev")）
+spring:
+  datasource:
+    password: ${DB_PWD}
+  cloud:
+    sentinel:
+      # 本地连 Dashboard 时保持 false，避免心跳过早
+      eager: false
+
+logging:
+  level:
+    com.inventory: DEBUG
+    com.alibaba.cloud.nacos: INFO

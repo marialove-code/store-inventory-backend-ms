@@ -1,0 +1,8 @@
+# inventory-service · 本地开发
+spring:
+  datasource:
+    password: ${DB_PWD}
+
+logging:
+  level:
+    com.inventory: DEBUG

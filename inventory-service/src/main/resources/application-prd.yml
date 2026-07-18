@@ -1,0 +1,9 @@
+# inventory-service · 服务器生产
+spring:
+  datasource:
+    password: ${DB_PWD}
+
+logging:
+  level:
+    root: INFO
+    com.inventory: INFO
