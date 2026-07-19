@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * 订单并发实验统一门面。
  * <p>
- * 根据 URL 参数 {@code version=v1~v7} 路由到对应 {@link OrderCreateConcurrencyStrategy} 实现，
+ * 根据 URL 参数 {@code version=v1~v7 / v5r} 路由到对应 {@link OrderCreateConcurrencyStrategy} 实现，
  * 供压测与文档对比使用，不影响正式 {@code POST /order/info/add} 入口（除非后续主动合并）。
  * </p>
  */
@@ -50,12 +50,12 @@ public class OrderConcurrencyFacade {
     public Result<?> createOrder(String version, OrderInfoDTO dto) {
         ConcurrencyVersion concurrencyVersion = ConcurrencyVersion.fromCode(version);
         if (concurrencyVersion == null) {
-            return Result.fail("不支持的并发版本: " + version + "，可选: v1~v7");
+            return Result.fail("不支持的并发版本: " + version + "，可选: v1~v7、v5r");
         }
 
         OrderCreateConcurrencyStrategy strategy = strategyMap.get(concurrencyVersion.getCode());
         if (strategy == null) {
-            return Result.fail("版本 " + version + " 尚未注册 Spring Bean，请检查 v1~v7 实现类");
+            return Result.fail("版本 " + version + " 尚未注册 Spring Bean，请检查 v1~v7 / v5r 实现类");
         }
 
         return strategy.createOrder(dto);

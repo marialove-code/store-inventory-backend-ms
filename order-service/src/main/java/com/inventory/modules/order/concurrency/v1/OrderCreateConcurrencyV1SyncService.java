@@ -16,14 +16,23 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * V1 同步核心：复现单体「读可用库存 → 建单 → 非原子 lockStock」基线。
+ * V1 同步核心：临界区内的三步业务（V2 / V5 / V5r 持锁后都调用这里）。
  * <p>
- * <b>为何不直接调 MS 正式 {@code OrderInfoService#createOrder}？</b>
- * 微服务正式建单已改为「先原子 lock（带 bizNo）再 save」，无法复现 V1 超锁。
- * 本类刻意保持与单体相同的顺序与非原子锁，便于压测对照文档。
+ * 【先理解这个，再理解锁】<br>
+ * 没有外层锁时（纯 V1），多线程会在「步骤 1 读库存」和「步骤 3 锁库存」之间插队 → 超锁。<br>
+ * V2/V5 做的事：保证同一商品同一时刻只有一个线程能跑完下面 1→2→3。
  * </p>
  * <p>
- * 库存操作一律走 {@link InventoryStockClient}，禁止注入 StockService / Mapper。
+ * 【超锁时间线（无锁时）】
+ * <pre>
+ * 线程 A：读到可用=1  ──┐
+ * 线程 B：读到可用=1  ──┤ 都觉得「还有 1 件」
+ * 线程 A：建单 + lockStock+1
+ * 线程 B：建单 + lockStock+1  → 锁了 2 次，超锁
+ * </pre>
+ * </p>
+ * <p>
+ * 库存一律走 {@link InventoryStockClient}（HTTP 调 inventory-service），不直接改库。
  * </p>
  */
 @Service
@@ -34,21 +43,22 @@ public class OrderCreateConcurrencyV1SyncService {
     private final InventoryStockClient inventoryStockClient;
 
     /**
-     * V1 基线建单：getUsableStock 校验 → save(order) → lockNonAtomic。
+     * 非原子建单三步曲（读代码时按 1→2→3 跟）。
      *
-     * @param dto 下单入参
-     * @return 成功时返回订单号
-     * @throws IllegalStateException 库存不足等业务失败
+     * @return 订单号
+     * @throws IllegalStateException 库存不足等
      */
     @Transactional(rollbackFor = Exception.class)
     public String syncCreateOrderNonAtomic(OrderInfoDTO dto) {
-        // ===================== 1. 远程查询可用库存（读快照，非原子） =====================
+        // ========== 步骤 1：远程读「当前可用库存」快照 ==========
+        // 注意：这只是某一瞬间的读数，读完到步骤 3 之间若无外层锁，别人也能读到同样的数
         int usableStock = inventoryStockClient.getUsableStock(dto.getGoodsId());
         if (usableStock < dto.getBuyQty()) {
             throw new IllegalStateException("库存不足，当前可用库存：" + usableStock);
         }
 
-        // ===================== 2. 构建并保存订单（与单体一致：先落单再锁） =====================
+        // ========== 步骤 2：先落订单（待支付）==========
+        // 与单体压测基线一致：先 save 订单，再去锁库存
         OrderInfo order = new OrderInfo();
         BeanUtil.copyProperties(dto, order);
 
@@ -63,7 +73,9 @@ public class OrderCreateConcurrencyV1SyncService {
 
         orderInfoService.save(order);
 
-        // ===================== 3. 非原子锁定库存（无 bizNo，可复现超锁） =====================
+        // ========== 步骤 3：非原子锁定库存 ==========
+        // lockNonAtomic：库存服务侧「加 lock_stock」，没有「可用>=qty」那种原子 WHERE（那是 V4）
+        // 无外层互斥时，两线程都能通过步骤 1，再各执行一次本步骤 → 超锁
         inventoryStockClient.lockNonAtomic(dto.getGoodsId(), dto.getBuyQty());
 
         return orderNo;

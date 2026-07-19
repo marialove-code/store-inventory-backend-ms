@@ -26,7 +26,22 @@ spring:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user
-    password: ${DB_PWD:}
+    password: ${DB_PWD}
+  # 并发 V5 分布式锁；与 platform 共用同一 Redis（靠 Key 前缀隔离）
+  # host/password 由环境变量或 application-dev/prd 覆盖
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      # 无密码时不要写 password（空串会导致 Redisson 误发 AUTH）
+      database: 1
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 3000ms
 
 server:
   port: 8083
@@ -43,6 +58,15 @@ mybatis-plus:
 
 app:
   nacos-demo-message: local-default
+  # 并发 V5 / V5r：按商品抢 Redis 锁
+  concurrency:
+    v5:
+      lock-wait-ms: 30000
+      # 手写版固定租约（秒）
+      lock-lease-seconds: 30
+    v5r:
+      # Redisson：-1=看门狗自动续期；>0=固定租约秒数
+      lock-lease-seconds: -1
   sentinel:
     order-ping-flow-enabled: true
     order-unstable-degrade-enabled: true

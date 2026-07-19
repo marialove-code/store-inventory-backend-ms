@@ -4,9 +4,10 @@
 > - 分支 `ms/dev`，远程 Gitee：`store-inventory-backend-ms`  
 > - **不要**与家里在用的单体仓 `store-inventory-backend`（8080）混用  
 
-## 当前结构（**v3.2.0** · 同机生产切流）
+## 当前结构（**v3.3.0** · 并发 V5 Redis 分布式锁）
 
-> 标签 `v3.2.0`：在 v3.1.0 治理层基础上完成 dev/prd 配置拆分、同机部署脚本与域名 Nginx 切到微服务前端 + Gateway。
+> 标签 `v3.3.0`：order-service 落地并发 V5（手写 SET NX + Lua）与 V5r（Redisson 看门狗），含压测文档与 JMeter 结果。  
+> 上一版 `v3.2.0`：同机生产切流（dev/prd、部署脚本、域名 Nginx → Gateway）。
 
 ```text
 store-inventory-backend-ms/
@@ -61,4 +62,5 @@ mvn clean install -DskipTests
 - **P5+**：Feign → Nacos → Gateway  
 
 详见 [docs/微服务拆分-起步.md](docs/微服务拆分-起步.md)  
-生产同机切流与配置/Linux 命令：[docs/单体到微服务-部署与配置手册.md](docs/单体到微服务-部署与配置手册.md)
+生产同机切流与配置/Linux 命令：[docs/单体到微服务-部署与配置手册.md](docs/单体到微服务-部署与配置手册.md)  
+下一阶段路线（V5→…→CI/CD）：[docs/学习路线-下一阶段.md](docs/学习路线-下一阶段.md)

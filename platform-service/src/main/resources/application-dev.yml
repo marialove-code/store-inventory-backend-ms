@@ -2,7 +2,11 @@
 spring:
   data:
     redis:
+      # 默认直连服务器公网 Redis（当前无密码）；隧道场景可设 REDIS_HOST=127.0.0.1
       host: ${REDIS_HOST:120.53.88.204}
+      port: ${REDIS_PORT:6379}
+      # 无密码时不要写 password 键（空串可能触发 AUTH）；有密码时取消下一行注释
+      # password: ${REDIS_PWD}
   datasource:
     password: ${DB_PWD}
 
@@ -18,4 +22,4 @@ app:
 
 logging:
   level:
-    com.inventory: DEBUG
+    com.inventory: debug

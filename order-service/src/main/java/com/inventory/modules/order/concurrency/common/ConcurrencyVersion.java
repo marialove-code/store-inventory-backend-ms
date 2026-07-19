@@ -15,7 +15,9 @@ public enum ConcurrencyVersion {
     V2("v2", "JUC 基础并发（synchronized / ReentrantLock / 原子类）"),
     V3("v3", "线程池（任务拆分 + 异步处理）"),
     V4("v4", "SQL 并发控制（悲观锁 / 乐观锁）"),
-    V5("v5", "Redis 并发控制（分布式锁 / Lua 原子扣减）"),
+    V5("v5", "Redis 并发控制（手写 SET NX + Lua）"),
+    /** 与 V5 同临界区，锁实现换成 Redisson（看门狗），便于对照压测 */
+    V5R("v5r", "Redis 并发控制（Redisson RLock + 看门狗）"),
     V6("v6", "MQ 最终一致性（下单与锁库存异步解耦）"),
     V7("v7", "幂等 + 补偿机制（生产级完善）");
 

@@ -18,7 +18,11 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  * {@link EnableDiscoveryClient}：向 Nacos 注册；{@link EnableFeignClients}：按服务名发现并调用库存。
  * </p>
  */
-@SpringBootApplication(scanBasePackages = "com.inventory")
+@SpringBootApplication(
+        scanBasePackages = "com.inventory",
+        // 使用 OrderRedissonConfig（空密码不 AUTH）；只排除 V2 自动配置（V1 类不是 AutoConfiguration，exclude 会报错）
+        excludeName = "org.redisson.spring.starter.RedissonAutoConfigurationV2"
+)
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.inventory.order.client")
 // 只扫 Mapper 包，避免把 Service 接口误注册成 Mapper Bean

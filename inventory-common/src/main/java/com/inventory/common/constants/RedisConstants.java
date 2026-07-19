@@ -43,4 +43,10 @@ public final class RedisConstants {
      * 完整 Key：{@code inventory:ai:chat:session:{sessionId}}。
      */
     public static final String AI_CHAT_SESSION_PREFIX = "inventory:ai:chat:session:";
+
+    /**
+     * 库存锁单分布式锁前缀（order-service 并发 V5）。
+     * 完整 Key：{@code inventory:lock:stock:{goodsId}}。
+     */
+    public static final String STOCK_LOCK_PREFIX = "inventory:lock:stock:";
 }

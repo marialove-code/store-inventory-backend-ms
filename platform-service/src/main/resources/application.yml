@@ -1,7 +1,7 @@
 # ==============================
 # platform-service · 公共配置
-# 端口 8081；与单体共用同一 PostgreSQL / Redis，便于渐进拆分
-# 环境切换：spring.profiles.active = dev | prd（见 application-dev/prd.yml）
+# 端口 8081；与单体共用同一 PostgreSQL / Redis，便于渐进拆�?
+# 环境切换：spring.profiles.active = dev | prd（见 application-dev/prd.yml�?
 # ==============================
 server:
   port: 8081
@@ -16,7 +16,7 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
-    # 注册到 Nacos 时的服务名（其他服务将来按此名字发现本服务）
+    # 注册�?Nacos 时的服务名（其他服务将来按此名字发现本服务）
     name: platform-service
   cloud:
     nacos:
@@ -33,17 +33,18 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-  # PostgreSQL（与单体 / 库存 / 订单同库）
+  # PostgreSQL（与单体 / 库存 / 订单同库�?
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://127.0.0.1:5432/inventory_store
     username: inventory_user
     password: ${DB_PWD:}
-  # Redis（host/password 建议走环境变量，勿把生产密码写入仓库）
+  # Redis（host/password 建议走环境变量，勿把生产密码写入仓库�?
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
+      # 无密码环境可不设 REDIS_PWD；有密码时再配置
       password: ${REDIS_PWD:}
       database: 1
       timeout: 3000ms
@@ -57,7 +58,7 @@ spring:
       ssl:
         enabled: false
 
-# JWT：与单体对齐；生产务必用环境变量 JWT_SECRET 覆盖默认值
+# JWT：与单体对齐；生产务必用环境变量 JWT_SECRET 覆盖默认�?
 jwt:
   # 本地联调默认值与单体相同；部署环境请设置 JWT_SECRET
   secret: ${JWT_SECRET:8fA#2kLmPq9XvR7nTz5@Bc1YhU6WsQ0D}
@@ -68,9 +69,9 @@ jwt:
 
 # 跨域与上传路径见 application-dev.yml / application-prd.yml
 app:
-  version: v3.2.0
+  version: v3.3.0
 
-# 库存调用已改为 Feign：按服务名 inventory-service 从 Nacos 发现，不再配置 base-url
+# 库存调用已改�?Feign：按服务�?inventory-service �?Nacos 发现，不再配�?base-url
 
 # MyBatis-Plus（含逻辑删除，与单体一致）
 mybatis-plus:

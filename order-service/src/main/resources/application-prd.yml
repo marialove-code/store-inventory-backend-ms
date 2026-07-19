@@ -1,7 +1,11 @@
-# order-service · 服务器生产
+# order-service · 服务器生产（与 env.sh 配合：REDIS_HOST=127.0.0.1）
 spring:
   datasource:
     password: ${DB_PWD}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      # 有密码时再取消注释：password: ${REDIS_PWD}
   cloud:
     sentinel:
       eager: false

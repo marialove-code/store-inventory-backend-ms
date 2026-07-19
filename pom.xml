@@ -10,7 +10,7 @@
     -->
     <groupId>com.inventory</groupId>
     <artifactId>store-inventory-backend-ms</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.0</version>
     <packaging>pom</packaging>
     <name>store-inventory-backend-ms</name>
     <description>进销存微服务学习仓（平台 + 库存 + 订单 + AI）</description>
@@ -47,6 +47,8 @@
         <knife4j.version>4.3.0</knife4j.version>
         <!-- AI 服务：Spring AI Milestone -->
         <spring-ai.version>1.0.0-M6</spring-ai.version>
+        <!-- 并发 V5r：Redisson（与 Boot 3.2 配套用 spring-data-32） -->
+        <redisson.version>3.27.2</redisson.version>
     </properties>
 
     <dependencyManagement>
@@ -141,6 +143,17 @@
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
+            </dependency>
+            <!-- Redisson（并发 V5r） -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-data-32</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
