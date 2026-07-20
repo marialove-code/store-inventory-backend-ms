@@ -2,6 +2,13 @@
 
 版本独立于单体 `v2.0.0`。Git 标签与父 POM 版本对齐（如 `v3.3.0` / `3.3.0`）。
 
+## [3.4.0] — 2026-07-20 · 并发 V6 RabbitMQ
+
+- **V6**：`OrderCreateConcurrencyV6` 发 MQ 秒回「已受理」；`OrderLockStockConsumer` 异步走 V4 原子锁库存
+- order-service 接入 `spring-boot-starter-amqp`；队列 `order.concurrency.lock.stock`（`RabbitMqConfig`）
+- 压测 `?version=v6`：200 并发 HTTP 全受理，平均 RT ~4ms；最终 lockStock=100、`overLocked=false`
+- 文档：`并发V6-压测步骤.md`、`并发V6-问答整理.md`、`并发演进-V1到V7总览.md`；演进表补 V6 结果
+
 ## [3.3.0] — 2026-07-19 · 并发 V5 / V5r
 
 - **V5**：`OrderCreateConcurrencyV5` + `GoodsStockRedisLock`（Redis `SET NX EX` + Lua 安全解锁）

@@ -42,6 +42,13 @@ spring:
           max-idle: 10
           min-idle: 2
           max-wait: 3000ms
+  # 并发 V6：本机 Docker 起的 RabbitMQ（docker run rabbitmq:3-management）
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PWD:guest}
+    # 发布确认 / 消费者手动 ack 等高级项留给后续；先保证能连通
 
 server:
   port: 8083
@@ -58,7 +65,7 @@ mybatis-plus:
 
 app:
   nacos-demo-message: local-default
-  # 并发 V5 / V5r：按商品抢 Redis 锁
+  # 并发 V5 / V5r / V6
   concurrency:
     v5:
       lock-wait-ms: 30000
@@ -67,6 +74,9 @@ app:
     v5r:
       # Redisson：-1=看门狗自动续期；>0=固定租约秒数
       lock-lease-seconds: -1
+    v6:
+      # 与 RabbitMqConfig 中队列名保持一致（仅文档/日志可读，代码用常量）
+      lock-stock-queue: order.concurrency.lock.stock
   sentinel:
     order-ping-flow-enabled: true
     order-unstable-degrade-enabled: true

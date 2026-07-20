@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.inventory</groupId>
         <artifactId>store-inventory-backend-ms</artifactId>
-        <version>3.3.0</version>
+        <version>3.4.0</version>
     </parent>
 
     <artifactId>order-service</artifactId>
@@ -90,6 +90,11 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-data-32</artifactId>
+        </dependency>
+        <!-- 并发 V6：RabbitMQ 异步锁库存 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
         <!-- BeanUtil、StrUtil 等 -->
         <dependency>
