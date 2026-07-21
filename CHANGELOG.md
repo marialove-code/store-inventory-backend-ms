@@ -1,13 +1,21 @@
 # 更新日志（微服务学习仓）
 
-版本独立于单体 `v2.0.0`。Git 标签与父 POM 版本对齐（如 `v3.3.0` / `3.3.0`）。
+版本独立于单体 `v2.0.0`。Git 标签与父 POM 版本对齐（如 `v3.5.0` / `3.5.0`）。
+
+## [3.5.0] — 2026-07-21 · 并发 V7 幂等 + 补偿
+
+- **V7**：`OrderCreateConcurrencyV7` + `OrderIdempotentService`（Redis SET NX → `PROCESSING` / `DONE:{orderNo}`）；建单叠 V4
+- 补偿：`OrderCompensateRegistry` + `OrderConcurrencyCompensateJob`（dev 定时 unlock）；V6 消费者可带 `idempotentKey` 走同一套幂等
+- 压测 `?version=v7`：Apifox 同 key 连点只锁 1 次；**JMeter** 200 同 key 平均 RT **62ms**、吞吐 **187.3/s**、异常 0%，`lockStock=1`
+- 文档：`并发V7-压测步骤.md`、`并发V7-问答整理.md`；`并发演进.md` 补正式结果
+- 注意：`stock/reset` 不清 Redis 幂等 key
 
 ## [3.4.0] — 2026-07-20 · 并发 V6 RabbitMQ
 
 - **V6**：`OrderCreateConcurrencyV6` 发 MQ 秒回「已受理」；`OrderLockStockConsumer` 异步走 V4 原子锁库存
 - order-service 接入 `spring-boot-starter-amqp`；队列 `order.concurrency.lock.stock`（`RabbitMqConfig`）
-- 压测 `?version=v6`：200 并发 HTTP 全受理，平均 RT ~4ms；最终 lockStock=100、`overLocked=false`
-- 文档：`并发V6-压测步骤.md`、`并发V6-问答整理.md`、`并发演进-V1到V7总览.md`；演进表补 V6 结果
+- 压测 `?version=v6`：**JMeter** 200 并发 HTTP 全受理，平均 RT **93ms**、吞吐 **258.4/s**、异常 0%；最终 lockStock=100、`overLocked=false`（最终一致下 lockStock 会爬升）
+- 文档：`并发V6-压测步骤.md`、`并发V6-问答整理.md`、`并发演进-V1到V7总览.md`；演进表以 JMeter GUI 结果为准
 
 ## [3.3.0] — 2026-07-19 · 并发 V5 / V5r
 

@@ -37,4 +37,12 @@ public class OrderInfoDTO {
 
     /** 订单备注（可选） */
     private String remark;
+
+    /**
+     * 幂等键（V7 / 带幂等的异步消费使用）。
+     * <p>
+     * 同一业务请求请传相同值（如前端生成的 UUID）。重复提交时只应成功锁库存一次。
+     * </p>
+     */
+    private String idempotentKey;
 }

@@ -65,7 +65,7 @@ mybatis-plus:
 
 app:
   nacos-demo-message: local-default
-  # 并发 V5 / V5r / V6
+  # 并发 V5 / V5r / V6 / V7
   concurrency:
     v5:
       lock-wait-ms: 30000
@@ -77,6 +77,11 @@ app:
     v6:
       # 与 RabbitMqConfig 中队列名保持一致（仅文档/日志可读，代码用常量）
       lock-stock-queue: order.concurrency.lock.stock
+    v7:
+      # 幂等键 Redis TTL（小时）
+      idempotent-ttl-hours: 24
+      # 补偿任务扫描间隔（毫秒）
+      compensate-delay-ms: 30000
   sentinel:
     order-ping-flow-enabled: true
     order-unstable-degrade-enabled: true

@@ -49,4 +49,17 @@ public final class RedisConstants {
      * 完整 Key：{@code inventory:lock:stock:{goodsId}}。
      */
     public static final String STOCK_LOCK_PREFIX = "inventory:lock:stock:";
+
+    /**
+     * 下单幂等键前缀（order-service 并发 V7）。
+     * 完整 Key：{@code inventory:idempotent:order:{idempotentKey}}。
+     * value 形如 {@code DONE:{orderNo}} 或 {@code PROCESSING}。
+     */
+    public static final String ORDER_IDEMPOTENT_PREFIX = "inventory:idempotent:order:";
+
+    /**
+     * V7 待补偿解锁集合（Redis Set）。
+     * member 形如 {@code goodsId|qty|orderNo}。
+     */
+    public static final String ORDER_COMPENSATE_UNLOCK_SET = "inventory:v7:compensate:unlock";
 }

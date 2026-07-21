@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.inventory.common.constants.OrderPrefix;
 import com.inventory.common.enums.OrderStatusEnum;
 import com.inventory.common.utils.OrderNoGenerator;
+import com.inventory.modules.order.concurrency.v7.OrderCompensateRegistry;
 import com.inventory.modules.order.orderinfo.dto.OrderInfoDTO;
 import com.inventory.modules.order.orderinfo.entity.OrderInfo;
 import com.inventory.modules.order.orderinfo.service.OrderInfoService;
@@ -33,6 +34,7 @@ public class OrderCreateConcurrencyV4SyncService {
 
     private final InventoryStockClient inventoryStockClient;
     private final OrderInfoService orderInfoService;
+    private final OrderCompensateRegistry orderCompensateRegistry;
 
     /**
      * V4 创建订单并锁定库存（SQL 原子条件，经 HTTP）。
@@ -64,10 +66,11 @@ public class OrderCreateConcurrencyV4SyncService {
         try {
             orderInfoService.save(order);
         } catch (Exception ex) {
+            // 落单失败：先尝试立即解锁；仍失败则登记 V7 补偿队列
             try {
                 inventoryStockClient.unlock(dto.getGoodsId(), dto.getBuyQty());
-            } catch (Exception ignored) {
-                // 补偿失败留给后续对账；此处不吞建单异常
+            } catch (Exception unlockEx) {
+                orderCompensateRegistry.enqueueUnlock(dto.getGoodsId(), dto.getBuyQty(), orderNo);
             }
             throw ex;
         }

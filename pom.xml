@@ -10,7 +10,7 @@
     -->
     <groupId>com.inventory</groupId>
     <artifactId>store-inventory-backend-ms</artifactId>
-    <version>3.4.0</version>
+    <version>3.5.0</version>
     <packaging>pom</packaging>
     <name>store-inventory-backend-ms</name>
     <description>进销存微服务学习仓（平台 + 库存 + 订单 + AI）</description>

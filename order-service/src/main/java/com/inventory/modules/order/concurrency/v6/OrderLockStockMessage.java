@@ -42,4 +42,9 @@ public class OrderLockStockMessage implements Serializable {
      * 消息投递时间戳（毫秒），方便日志排查，不做业务强依赖。
      */
     private Long sentAt;
+
+    /**
+     * 幂等键（可选）。有值时消费者走 V7 幂等，防止重复投递重复锁库存。
+     */
+    private String idempotentKey;
 }
