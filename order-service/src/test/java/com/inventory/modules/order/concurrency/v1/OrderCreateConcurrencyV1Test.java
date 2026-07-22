@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </p>
  * <p>
  * <b>V1 预期</b>：高并发下可能出现超锁（成功数 &gt; 100 或 lockStock &gt; stock），
- * 本测试不断言「必须超锁」，而是输出指标供写入 {@code docs/并发演进.md}。
+ * 本测试不断言「必须超锁」，而是输出指标供写入 {@code docs/并发/01-压测数据.md}。
  * </p>
  */
 @Slf4j
@@ -96,7 +96,7 @@ class OrderCreateConcurrencyV1Test {
     /**
      * V1 核心：多线程同时调用 {@code version=v1} 创建订单，统计成功/失败与最终 lockStock。
      * <p>
-     * 运行结束后请将控制台输出填入 {@code docs/并发演进.md} 的 V1 行。
+     * 运行结束后请将控制台输出填入 {@code docs/并发/01-压测数据.md} 的 V1 行。
      * </p>
      */
     @Test
@@ -161,7 +161,7 @@ class OrderCreateConcurrencyV1Test {
         int stock = snapshot.getStock() == null ? 0 : snapshot.getStock();
         boolean overLocked = Boolean.TRUE.equals(snapshot.getOverLocked());
 
-        // ===== 控制台输出（复制到 docs/并发演进.md）=====
+        // ===== 控制台输出（复制到 docs/并发/01-压测数据.md）=====
         log.info("========== V1 并发压测结果 ==========");
         log.info("并发线程数: {}", CONCURRENT_THREADS);
         log.info("成功下单数: {}", success);

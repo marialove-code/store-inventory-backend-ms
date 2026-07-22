@@ -281,7 +281,7 @@ public static Singleton getInstance() { return INSTANCE; }
 | 第 1～3 次 | 109 | 91 | 109 | -9 | 是（三轮一致） |
 
 接口：`POST /api/order/concurrency/order/add?version=v1`  
-详见：`docs/并发演进.md`
+详见：`docs/并发/01-压测数据.md`
 
 ---
 

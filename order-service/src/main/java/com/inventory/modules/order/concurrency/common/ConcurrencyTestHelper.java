@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * 并发压测辅助工具（微服务适配版）。
  * <p>
- * 职责：压测前重置库存、压测后查询 stock / lockStock / 待支付订单数，便于填写 {@code docs/并发演进.md}。
+ * 职责：压测前重置库存、压测后查询 stock / lockStock / 待支付订单数，便于填写 {@code docs/并发/01-压测数据.md}。
  * <b>库存读写一律通过 {@link InventoryStockClient} HTTP 调用，禁止注入 InventoryStockMapper。</b>
  * </p>
  */

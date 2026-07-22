@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * 并发演进版本枚举（V1～V7）。
  * <p>
- * 与 {@code docs/并发演进.md} 文档及压测对比表一一对应。
+ * 与 {@code docs/并发/01-压测数据.md} 文档及压测对比表一一对应。
  * </p>
  */
 @Getter

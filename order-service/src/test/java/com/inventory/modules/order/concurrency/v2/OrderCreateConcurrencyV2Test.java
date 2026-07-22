@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </p>
  * <p>
  * <b>V2 预期</b>：200 并发下成功数 ≤ 100，lockStock ≤ stock，{@code overLocked=false}。
- * 与 V1（约 109 成功、超锁 9 单）形成对比，结果写入 {@code docs/并发演进.md}。
+ * 与 V1（约 109 成功、超锁 9 单）形成对比，结果写入 {@code docs/并发/01-压测数据.md}。
  * </p>
  */
 @Slf4j
@@ -246,7 +246,7 @@ class OrderCreateConcurrencyV2Test {
         // Helper 内：lockStock > stock 或 usable < 0 时为 true
         boolean overLocked = Boolean.TRUE.equals(snapshot.getOverLocked());
 
-        // ==================== 5. 控制台报告（复制到 docs/并发演进.md V2 行） ====================
+        // ==================== 5. 控制台报告（复制到 docs/并发/01-压测数据.md V2 行） ====================
 
         log.info("========== V2 并发压测结果 ==========");
         log.info("并发线程数: {}", CONCURRENT_THREADS);

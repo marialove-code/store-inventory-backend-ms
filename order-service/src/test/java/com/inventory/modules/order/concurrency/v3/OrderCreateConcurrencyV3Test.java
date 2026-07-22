@@ -164,7 +164,7 @@ class OrderCreateConcurrencyV3Test {
         // 是否超锁：lockStock > stock 等逻辑在 Helper 里算好
         boolean overLocked = Boolean.TRUE.equals(snapshot.getOverLocked());
 
-        // 打印汇总，方便和 JMeter、并发演进.md 对照
+        // 打印汇总，方便和 JMeter、并发/01-压测数据.md 对照
         log.info("========== V3 并发压测结果 ==========");
         log.info("并发线程数: {}", CONCURRENT_THREADS);
         log.info("成功下单数: {}", success);
