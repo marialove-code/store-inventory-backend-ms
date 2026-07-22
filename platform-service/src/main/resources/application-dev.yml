@@ -9,6 +9,9 @@ spring:
       # password: ${REDIS_PWD}
   datasource:
     password: ${DB_PWD}
+  # P4：本机 Elasticsearch（Docker 容器 es-dev:9200）
+  elasticsearch:
+    uris: ${ES_URIS:http://127.0.0.1:9200}
 
 app:
   cors:
@@ -19,6 +22,10 @@ app:
     product-image-prefix: /upload/product/
     brand-image-path: E:/Image/upload/brand/
     brand-image-prefix: /upload/brand/
+  elasticsearch:
+    # true 时装配 GoodsEsSearchService / Controller；ES 未启动时请先 docker start es-dev
+    enabled: true
+    reindex-limit: 500
 
 logging:
   level:

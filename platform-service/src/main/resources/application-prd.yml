@@ -15,6 +15,9 @@ app:
     product-image-prefix: https://www.nestparts.top/upload/product/
     brand-image-path: /opt/upload/brand/
     brand-image-prefix: https://www.nestparts.top/upload/brand/
+  elasticsearch:
+    # 生产默认关闭学习用 ES 接口
+    enabled: false
 
 logging:
   level:

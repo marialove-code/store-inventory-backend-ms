@@ -41,6 +41,9 @@ public class SecurityConfig {
             "/auth/refreshToken",
             // 探活接口（网关/运维探测，无需登录）
             "/platform/ping",
+            // P4：ES 演示接口放行（无需 JWT）。注意：Security 匹配的是去掉 context-path 后的路径
+            "/es/goods/search",
+            "/dev/es/**",
             // 静态上传资源
             "/upload/avatar/**",
             "/upload/product/**",
