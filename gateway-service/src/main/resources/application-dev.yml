@@ -1,3 +1,11 @@
 # gateway · 本地：默认 8080（与本机前端 Vite 代理一致）
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        # 语义搜 / Embedding / Chat 可能超过默认约 20s
+        connect-timeout: 5000
+        response-timeout: 120s
+
 server:
   port: ${SERVER_PORT:8080}

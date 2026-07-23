@@ -2,6 +2,13 @@
 # profiles=dev 时会加载 concurrency 压测 Controller（@Profile("dev")）
 # Redis：默认直连服务器公网 IP（当前 Redis 无密码）；也可用隧道后设 REDIS_HOST=127.0.0.1
 spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+    sentinel:
+      # 本地连 Dashboard 时保持 false，避免心跳过早
+      eager: false
   datasource:
     password: ${DB_PWD:}
   data:
@@ -10,10 +17,6 @@ spring:
       port: ${REDIS_PORT:6379}
       # 不写 password 键，避免空串触发 Redisson AUTH；有密码时用环境变量 REDIS_PWD 或下面取消注释
       # password: ${REDIS_PWD}
-  cloud:
-    sentinel:
-      # 本地连 Dashboard 时保持 false，避免心跳过早
-      eager: false
 
 logging:
   level:

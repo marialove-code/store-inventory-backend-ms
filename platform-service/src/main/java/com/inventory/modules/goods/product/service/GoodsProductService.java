@@ -54,8 +54,13 @@ public interface GoodsProductService extends IService<GoodsProduct> {
     Result<?> batchUpdateShelfStatus(List<String> ids, Integer shelfStatus);
 
     /**
+     * 按商品 id 列表查询（含库存），用于智搜 V2 等「先检索再回表」场景。
+     * 返回顺序与传入 ids 一致；不存在的 id 跳过。
+     */
+    Result<?> listByIds(List<Long> ids);
+
+    /**
      * 图片上传
      */
     Result<?> uploadImage(MultipartFile file);
-
 }

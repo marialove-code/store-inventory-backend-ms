@@ -1,5 +1,10 @@
 # ai-service · 本地开发
 spring:
+  cloud:
+    nacos:
+      discovery:
+        # 本机多网卡时 prefer-ip 可能选到虚拟网卡，网关 lb 超时 → 前端 500
+        ip: 127.0.0.1
   datasource:
     password: ${DB_PWD}
 

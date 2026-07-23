@@ -49,6 +49,30 @@ public class GoodsProductController {
     }
 
     /**
+     * 按 id 批量查询商品（保序），供智搜 V2 语义命中后回填表格。
+     * ids 逗号分隔，如 1,2,3
+     */
+    @GetMapping("/listByIds")
+    @RequiresPerm("goods:product:list")
+    public Result<?> listByIds(@RequestParam("ids") String ids) {
+        List<Long> idList = new java.util.ArrayList<>();
+        if (ids != null && !ids.isBlank()) {
+            for (String part : ids.split(",")) {
+                String t = part.trim();
+                if (t.isEmpty()) {
+                    continue;
+                }
+                try {
+                    idList.add(Long.parseLong(t));
+                } catch (NumberFormatException ignored) {
+                    // 跳过非法片段
+                }
+            }
+        }
+        return goodsProductService.listByIds(idList);
+    }
+
+    /**
      * 新增商品
      */
     @PostMapping

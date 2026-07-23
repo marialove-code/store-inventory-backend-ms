@@ -1,6 +1,14 @@
 # 更新日志（微服务学习仓）
 
-版本独立于单体 `v2.0.0`。Git 标签与父 POM 版本对齐（如 `v3.5.0` / `3.5.0`）。
+版本独立于单体 `v2.0.0`。Git 标签与父 POM 版本对齐（如 `v3.6.0` / `3.6.0`）。
+
+## [3.6.0] — 2026-07-23 · 智搜 V2 RAG + 业务入口收口
+
+- **智搜 V2**：`ai-service` Embedding（`text-embedding-v3` / 1024）+ pgvector TopK；`searchWithRag` 用命中原文生成推荐说明
+- 建表 SQL：`docs/sql/v2_goods_search_embedding.sql`；接口 `POST /ai/goods/reindex-embedding`、`GET /ai/goods/semantic-search`
+- **业务回填**：`GET /goods/product/listByIds`（保序 + 列表 VO）；ES reindex 正式路径 `/es/goods/reindex` + 关闭时占位提示
+- **本机联调**：各服务 `application-dev.yml` 强制 Nacos 注册 `127.0.0.1`；网关 AI 超时 120s
+- 文档：AI 最小学习路线、智搜与 ES 笔记、路线图勾选更新
 
 ## [3.5.0] — 2026-07-21 · 并发 V7 幂等 + 补偿
 

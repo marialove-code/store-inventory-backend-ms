@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.inventory.modules.goods.product.vo.GoodsProductListVO;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
 * @author 95349
 * @description 针对表【goods_product(商品信息表)】的数据库操作Mapper
@@ -26,7 +28,10 @@ public interface GoodsProductMapper extends BaseMapper<GoodsProduct> {
                                                     @Param("minPrice") java.math.BigDecimal minPrice,
                                                     @Param("maxPrice") java.math.BigDecimal maxPrice);
 
-
+    /**
+     * 按 id 集合联查商品+库存（顺序由调用方在内存中还原）
+     */
+    List<GoodsProductListVO> selectProductByIds(@Param("ids") List<Long> ids);
 
 }
 

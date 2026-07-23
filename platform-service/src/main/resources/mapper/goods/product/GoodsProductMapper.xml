@@ -101,4 +101,38 @@
         ORDER BY p.sort ASC,p.create_time DESC
         <!--MybatisPlus分页插件自动拼接LIMIT OFFSET，不用自己写分页SQL-->
     </select>
+
+    <select id="selectProductByIds" resultType="com.inventory.modules.goods.product.vo.GoodsProductListVO">
+        SELECT
+        p.id,
+        p.main_image mainImage,
+        p.images images,
+        p.product_name productName,
+        p.spec_model specModel,
+        p.product_code productCode,
+        p.category_id categoryId,
+        p.category_name categoryName,
+        p.brand_id brandId,
+        p.brand_name brandName,
+        p.supplier_name supplierName,
+        p.manufacturer manufacturer,
+        p.unit unit,
+        p.cost_price costPrice,
+        p.sale_price salePrice,
+        p.showcase_position showcasePosition,
+        p.shelf_status shelfStatus,
+        p.sort sort,
+        p.create_time createTime,
+        p.update_time updateTime,
+        p.is_deleted isDeleted,
+        coalesce(s.stock, 0) stock,
+        coalesce(s.stock_warn, 0) stockWarn
+        FROM goods_product p
+        LEFT JOIN inventory_stock s ON p.id = s.goods_id
+        WHERE p.is_deleted = 0
+          AND p.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

@@ -1,5 +1,9 @@
 # inventory-service · 本地开发
 spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
   datasource:
     password: ${DB_PWD}
 

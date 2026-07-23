@@ -98,6 +98,41 @@ public class GoodsProductServiceImpl extends ServiceImpl<GoodsProductMapper, Goo
         return Result.success(voPage);
     }
 
+    /**
+     * 按 id 批量查商品+库存，并按传入 ids 顺序返回（智搜 V2 回填用）。
+     */
+    @Override
+    public Result<?> listByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Result.success(List.of());
+        }
+        // 去重但保序
+        List<Long> orderedUnique = new ArrayList<>();
+        for (Long id : ids) {
+            if (id != null && !orderedUnique.contains(id)) {
+                orderedUnique.add(id);
+            }
+        }
+        if (orderedUnique.isEmpty()) {
+            return Result.success(List.of());
+        }
+        List<GoodsProductListVO> found = goodsProductMapper.selectProductByIds(orderedUnique);
+        Map<Long, GoodsProductListVO> byId = new java.util.HashMap<>(found.size() * 2);
+        for (GoodsProductListVO vo : found) {
+            if (vo != null && vo.getId() != null) {
+                byId.put(vo.getId(), vo);
+            }
+        }
+        List<GoodsProductListVO> ordered = new ArrayList<>(orderedUnique.size());
+        for (Long id : orderedUnique) {
+            GoodsProductListVO vo = byId.get(id);
+            if (vo != null) {
+                ordered.add(vo);
+            }
+        }
+        return Result.success(ordered);
+    }
+
     // ======================== 2. 新增商品 ========================
 
     /**

@@ -24,6 +24,11 @@ spring:
         options:
           model: qwen-turbo
           temperature: 0.3
+      # 智搜 V2：文本向量（维度须与表 goods_search_embedding.embedding vector(1024) 一致）
+      embedding:
+        options:
+          model: text-embedding-v3
+          dimensions: 1024
 
 server:
   port: 8084
@@ -45,6 +50,14 @@ inventory:
       fallback-reply: 抱歉，智能客服暂时繁忙，请稍后再试。您也可以点击上方快捷问题，或联系管理员。
       session-store: memory
       session-ttl-seconds: 604800
+    # 智搜 V2：语义检索（Embedding + pgvector）+ RAG 生成
+    semantic:
+      enabled: true
+      embedding-dimensions: 1024
+      reindex-limit: 200
+      top-k: 5
+      # true：检索后用 Chat 根据命中原文生成推荐说明
+      rag-enabled: true
     sql:
       max-rows: 100
       allowed-tables:
@@ -61,6 +74,7 @@ inventory:
         - sys_user
         - sys_role
         - sys_operation_log
+        - goods_search_embedding
 
 logging:
   level:

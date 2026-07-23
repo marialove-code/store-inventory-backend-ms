@@ -190,8 +190,9 @@ curl -X GET "http://localhost:9200/goods_search/_search" -H "Content-Type: appli
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/dev/es/goods/reindex` | 从 PG 拉商品写入 ES（学习用，需 Token 或白名单） |
+| POST | `/api/es/goods/reindex`（兼 `/api/dev/es/goods/reindex`） | 从 PG 拉商品写入 ES（学习用） |
 | GET | `/api/es/goods/search?q=关键词` | 查 ES，返回 id + 名称等 |
+| **业务入口** | 商品列表页 →「ES 关键词」→ `listByIds` 填表；可点「重建 ES 索引」 |
 
 配置（dev）：`spring.elasticsearch.uris=http://127.0.0.1:9200`，`app.elasticsearch.enabled=true`  
 生产：`app.elasticsearch.enabled=false`（不装配演示 Bean）。
@@ -255,12 +256,12 @@ flowchart LR
 |----|--------|------|
 | Docker 单机 ES + curl 验证 | ✅ 已做 | 证明引擎能起 |
 | 索引 `goods_search` + 手动/接口 reindex | ✅ 已做 | 数据怎么进 ES |
-| `GET /es/goods/search` 关键词检索 | ✅ 已做 | 读路径查 ES |
+| `GET /es/goods/search` 关键词检索 | ✅ 已做 | 读路径查 ES；商品页「ES 关键词」已接入 |
 | MQ / Canal **自动**同步代码 | ❌ 未做 | 机器与时间成本高，口述即可 |
 | 集群、副本、鉴权/TLS | ❌ 未做 | 学习机关安全单机即可 |
 | IK 中文分词深配 | ❌ 未做 | 知道「为啥要、怎么配」 |
-| 智搜 V2（向量 RAG） | ❌ 未做 | 与关键词 ES 不同赛道 |
-| 前端主列表改走 ES | ❌ 未做 | 控范围，旁路接口够演示 |
+| 智搜 V2（向量 RAG） | ✅ 已做 | TopK + RAG；商品页「语义搜索」 |
+| 前端主列表改走 ES | ❌ 未做（可选） | 已有「ES 关键词」旁路入口，够演示 |
 | 锁库存/下单改走 ES | ❌ **不应做** | 架构错误，要会反驳 |
 
 ---
@@ -476,3 +477,26 @@ sequenceDiagram
   PG = 账本（CRUD 真相）
   ES = 目录（检索副本，最终一致）
 ```
+
+---
+
+## 16. 下一步：智搜 V2 / AI 加深
+
+执行顺序、建议时间、投简历前后怎么穿插：  
+→ [`AI应用开发-最小学习路线.md`](./AI应用开发-最小学习路线.md)
+
+### 16.1 本机已落地（S4 旁路演示）
+
+| 项 | 说明 |
+|----|------|
+| 扩展 | 云 PG 已装 pgvector 0.8.2 |
+| 建表 SQL | [`sql/v2_goods_search_embedding.sql`](./sql/v2_goods_search_embedding.sql) |
+| Embedding | DashScope `text-embedding-v3`，1024 维 |
+| 文本块 | 商品名 + 规格 + 品牌 + 分类 |
+| 建库 | `POST /api/ai/goods/reindex-embedding`（ai-service；网关 `/api/ai/**`） |
+| 语义搜 | `GET /api/ai/goods/semantic-search?q=续航久的手表`（默认 `withRag=true` → `{hits, ragSummary}`） |
+| **业务入口** | 商品列表页 AI 搜索栏 →「语义搜索」→ TopK + RAG 说明填 insight，`listByIds` 填表 |
+| 范围 | TopK + Chat 推荐说明（仅依据命中原文，不编造库存/价格）；保留「条件智搜」V1 |
+
+演示前：SSH 隧道通 5432、配置 `DASHSCOPE_API_KEY`、先在库执行建表 SQL，再启动 `ai-service` + `platform-service`（或经网关）。  
+商品页语义模式可点「重建向量索引」刷新向量表。

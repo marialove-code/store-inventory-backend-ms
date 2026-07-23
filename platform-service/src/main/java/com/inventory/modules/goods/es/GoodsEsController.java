@@ -18,7 +18,7 @@ import java.util.Map;
  * <p>
  * 实际路径还要加 context-path：{@code /api}，所以完整地址是：
  * <ul>
- *   <li>POST /api/dev/es/goods/reindex</li>
+ *   <li>POST /api/es/goods/reindex（正式路径；/dev 别名兼容 curl）</li>
  *   <li>GET  /api/es/goods/search?q=关键词</li>
  * </ul>
  * {@code @ConditionalOnProperty}：只有配置 {@code app.elasticsearch.enabled=true} 时才创建这个 Bean；
@@ -40,7 +40,7 @@ public class GoodsEsController {
      * 浏览器地址栏只能 GET，这个接口必须用 POST（curl -X POST 或 Apifox）。
      * </p>
      */
-    @PostMapping("/dev/es/goods/reindex")
+    @PostMapping({"/es/goods/reindex", "/dev/es/goods/reindex"})
     public Result<?> reindex() {
         // 1）调服务：PG → ES
         int count = goodsEsSearchService.reindexFromDb();

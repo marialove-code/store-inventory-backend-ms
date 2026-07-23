@@ -18,7 +18,14 @@
 | 6 | AI 看板洞察 | **嵌在首页看板**（无独立菜单） | `GET /api/ai/dashboard/insight` | 是 | 润色 suggestion 等 | 规则算 healthScore |
 | 7 | AI 销售预测 | **嵌在首页销售趋势图**（7 日） | `GET /api/ai/dashboard/sales-forecast` | 是 | 生成 7 点预测曲线 | 线性外推 |
 
-**规划中（未实现）：** 智搜 V2 RAG（Embedding + 向量库语义检索）。
+**规划中 / 进行中：** 智搜 V2 已落地 Embedding + pgvector TopK + RAG 生成；后续可补商品 CRUD 同步向量、库存条件筛选。  
+**执行顺序与时间表：** [`AI应用开发-最小学习路线.md`](./AI应用开发-最小学习路线.md)  
+**建表 SQL：** [`sql/v2_goods_search_embedding.sql`](./sql/v2_goods_search_embedding.sql)  
+**旁路/业务接口（ai-service）：**  
+- `POST /api/ai/goods/reindex-embedding` 重建向量  
+- `GET /api/ai/goods/semantic-search?q=` 语义 TopK  
+**前端：** 商品列表 → AI 搜索栏「语义搜索」模式（V1 条件智搜仍保留）
+
 
 ```mermaid
 flowchart TB

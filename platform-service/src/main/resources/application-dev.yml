@@ -1,5 +1,10 @@
 # platform-service · 本地开发（对齐单体 application-dev.yml）
 spring:
+  cloud:
+    nacos:
+      discovery:
+        # 本机多网卡时强制环回，避免网关 lb 打到不可达虚拟网卡 IP
+        ip: 127.0.0.1
   data:
     redis:
       # 默认直连服务器公网 Redis（当前无密码）；隧道场景可设 REDIS_HOST=127.0.0.1
