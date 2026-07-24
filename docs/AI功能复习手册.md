@@ -2,7 +2,8 @@
 
 > 用途：面试口述 / 联调对照 / 代码阅读路线图  
 > 技术栈：Spring AI 1.0.0-M6 + 通义千问 DashScope（OpenAI 兼容）+ PostgreSQL + React 前端  
-> 更新日期：2026-07-12
+> 更新日期：2026-07-12  
+> **LangChain 对照：** [`LangChain与SpringAI对照-复习手册.md`](./LangChain与SpringAI对照-复习手册.md) · 学习代码 `ai-service/.../learning/reference/`
 
 ---
 
