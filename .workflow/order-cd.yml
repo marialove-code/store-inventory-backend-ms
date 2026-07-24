@@ -49,7 +49,7 @@ stages:
       - step: deploy@agent
         name: deploy_order_host
         displayName: 主机部署order容器
-        hostGroupID: REPLACE_WITH_YOUR_HOST_GROUP_ID
+        hostGroupID: inventory-prd
         deployArtifact:
           - source: build
             name: order-service-3.6.0.jar
