@@ -17,6 +17,7 @@ import java.util.Map;
  * P0 探活 + Nacos Config 演示 + Sentinel 限流演示。
  * <p>
  * 探活 + 限流参考实现；真实业务见 {@code OrderInfoController} / {@code InventoryStockClient}。
+ * CI 验证：push ms/dev 触发 Order-CI 自动编译（2026-07-24）。
  * </p>
  */
 @RestController
