@@ -1,8 +1,8 @@
 # 门店简易记账 · 后端（微服务学习仓）
 
 > ⚠️ **本目录是微服务拆分学习副本（`store-inventory-backend-ms`）**  
-> - 分支 `ms/dev`，远程 Gitee：`store-inventory-backend-ms`  
-> - **不要**与家里在用的单体仓 `store-inventory-backend`（8080）混用  
+> - 分支 `ms/dev`，远程：Gitee `store-inventory-backend-ms` · GitHub [store-inventory-backend-ms](https://github.com/marialove-code/store-inventory-backend-ms)  
+> - **不要**与家里在用的单体仓 `store-inventory-backend` / GitHub `store-inventory-backend-mono`（8080）混用  
 
 ## 当前结构（**v3.3.0** · 并发 V5 Redis 分布式锁）
 
