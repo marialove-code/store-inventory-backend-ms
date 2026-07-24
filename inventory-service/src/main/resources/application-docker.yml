@@ -1,0 +1,10 @@
+# 激活：SPRING_PROFILES_ACTIVE=dev,docker
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: host.docker.internal:8848
+        ip: host.docker.internal
+        prefer-ip-address: true
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/inventory_store

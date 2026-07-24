@@ -1,0 +1,10 @@
+# 容器专用配置：中间件走宿主机；多服务互调用经 host.docker.internal + 端口映射
+# 激活：SPRING_PROFILES_ACTIVE=dev,docker
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: host.docker.internal:8848
+        # 五个业务都在容器时：登记宿主机可达地址，容器之间经端口映射互相访问
+        ip: host.docker.internal
+        prefer-ip-address: true

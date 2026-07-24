@@ -1,0 +1,32 @@
+# =============================================================================
+# order-service · Dockerfile.multistage（进阶 / 面试口径）
+# =============================================================================
+#
+# 【与 Dockerfile 的区别】
+#   本文件：镜像构建时在容器内 mvn package（真正的多阶段：build → run）
+#   Dockerfile：本机先 mvn，镜像只拷 jar（Day1 更稳，网络差时优先）
+#
+# 【面试怎么讲】
+#   「生产/CI 常用多阶段：编译阶段用 JDK+Maven，运行阶段只用 JRE 拷贝产物，
+#    最终镜像不含源码和构建工具。」
+#
+# 【何时用】
+#   Docker Hub / Maven Central 网络稳定时：
+#   docker build -f order-service/Dockerfile.multistage -t inventory-order:3.6.0 .
+# =============================================================================
+
+FROM maven:3.9.9-eclipse-temurin-17 AS build
+WORKDIR /workspace
+COPY . .
+RUN mvn -pl order-service -am -DskipTests package \
+    && JAR="$(ls order-service/target/order-service-*.jar | grep -v original | head -n 1)" \
+    && cp "$JAR" /workspace/app.jar
+
+# 理想：eclipse-temurin:17-jre-jammy；拉不下时与 build 同镜像亦可
+FROM maven:3.9.9-eclipse-temurin-17
+WORKDIR /app
+COPY --from=build /workspace/app.jar /app/app.jar
+EXPOSE 8083
+ENV SPRING_PROFILES_ACTIVE=dev,docker \
+    JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

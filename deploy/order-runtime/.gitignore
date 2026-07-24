@@ -1,0 +1,4 @@
+# jar 由 CI/CD 或本机 scp 放入本目录，勿提交到 Git
+*
+!.gitignore
+!Dockerfile

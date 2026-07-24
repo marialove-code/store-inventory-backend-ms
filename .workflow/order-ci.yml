@@ -1,0 +1,33 @@
+# =============================================================================
+# Order · 仅 CI：push ms/dev 自动 Maven 编译（不出生产）
+# =============================================================================
+# 开通 Gitee Go 后，本文件在仓库 .workflow/ 下会被识别为一条流水线。
+# =============================================================================
+
+version: "1.0"
+name: order-ci
+displayName: Order-CI编译
+
+triggers:
+  push:
+    branches:
+      precise:
+        - ms/dev
+
+stages:
+  - stage: compile
+    displayName: 编译order
+    strategy: fast
+    trigger: auto
+    steps:
+      - step: build@maven
+        name: build_order
+        displayName: Maven打包order
+        jdkVersion: 17
+        mavenVersion: 3.6.3
+        commands:
+          - mvn -B -pl order-service -am -DskipTests package
+        artifacts:
+          - name: BUILD_ARTIFACT
+            path:
+              - ./order-service/target/order-service-3.6.0.jar

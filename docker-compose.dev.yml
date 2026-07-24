@@ -1,0 +1,67 @@
+# 本机联调：五个业务服务进容器；Nacos / PG / Redis 仍在宿主机（或已有容器映射到宿主机端口）
+# ES、RabbitMQ：你 Docker Desktop 里已有 es-dev、rabbitmq，经 host.docker.internal 访问即可
+#
+# 用法见 docs/云原生-五服务容器启动.md
+
+services:
+  gateway-service:
+    image: inventory-gateway:3.6.0
+    container_name: gateway-c
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,docker
+      DB_PWD: ${DB_PWD:-}
+      REDIS_HOST: ${REDIS_HOST:-120.53.88.204}
+
+  platform-service:
+    image: inventory-platform:3.6.0
+    container_name: platform-c
+    ports:
+      - "8081:8081"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,docker
+      DB_PWD: ${DB_PWD:-}
+      REDIS_HOST: ${REDIS_HOST:-120.53.88.204}
+      ES_URIS: http://host.docker.internal:9200
+
+  inventory-service:
+    image: inventory-inventory:3.6.0
+    container_name: inventory-c
+    ports:
+      - "8082:8082"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,docker
+      DB_PWD: ${DB_PWD:-}
+
+  order-service:
+    image: inventory-order:3.6.0
+    container_name: order-c
+    ports:
+      - "8083:8083"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,docker
+      DB_PWD: ${DB_PWD:-}
+      REDIS_HOST: ${REDIS_HOST:-120.53.88.204}
+      RABBITMQ_HOST: host.docker.internal
+
+  ai-service:
+    image: inventory-ai:3.6.0
+    container_name: ai-c
+    ports:
+      - "8084:8084"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,docker
+      DB_PWD: ${DB_PWD:-}
+      REDIS_HOST: ${REDIS_HOST:-120.53.88.204}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}

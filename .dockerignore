@@ -1,0 +1,25 @@
+# 默认丢掉各模块 target；构建运行镜像时需要带上各服务已打好的 jar
+**/target/
+!gateway-service/target/
+!gateway-service/target/**
+!platform-service/target/
+!platform-service/target/**
+!inventory-service/target/
+!inventory-service/target/**
+!order-service/target/
+!order-service/target/**
+!ai-service/target/
+!ai-service/target/**
+
+.git
+.idea
+**/.idea
+**/*.iml
+**/*.log
+**/.DS_Store
+
+docs/
+scripts/
+LICENSE
+*.md
+**/node_modules/

@@ -1,0 +1,21 @@
+# 激活：SPRING_PROFILES_ACTIVE=dev,docker
+spring:
+  cloud:
+    nacos:
+      server-addr: host.docker.internal:8848
+      discovery:
+        server-addr: host.docker.internal:8848
+        ip: host.docker.internal
+        prefer-ip-address: true
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/inventory_store
+  data:
+    redis:
+      host: ${REDIS_HOST:120.53.88.204}
+  elasticsearch:
+    uris: ${ES_URIS:http://host.docker.internal:9200}
+
+app:
+  elasticsearch:
+    # 本机有 es-dev 容器时可保持 true
+    enabled: true

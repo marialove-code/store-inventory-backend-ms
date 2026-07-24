@@ -1,0 +1,33 @@
+# =============================================================================
+# order-service · 容器专用配置（profile = docker）
+# =============================================================================
+# 激活方式：SPRING_PROFILES_ACTIVE=dev,docker
+#
+# 五个业务都在 Docker 时：discovery.ip 用 host.docker.internal，
+# 这样 order → inventory 等 Feign 调用经「宿主机端口映射」互通。
+# =============================================================================
+
+spring:
+  cloud:
+    nacos:
+      server-addr: host.docker.internal:8848
+      discovery:
+        server-addr: host.docker.internal:8848
+        ip: host.docker.internal
+        prefer-ip-address: true
+      config:
+        server-addr: host.docker.internal:8848
+    sentinel:
+      transport:
+        dashboard: host.docker.internal:8858
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/inventory_store
+  data:
+    redis:
+      host: ${REDIS_HOST:120.53.88.204}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:host.docker.internal}
+
+logging:
+  level:
+    com.inventory: INFO

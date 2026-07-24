@@ -1,0 +1,77 @@
+# =============================================================================
+# Order · CD：打 tag order-v* 或在 Gitee Go 手动运行 → 编译 + 主机部署
+# =============================================================================
+# 使用前必做：
+#   1. Gitee Go → 计算资源 → 主机组，记下主机组 ID
+#   2. 把下面 hostGroupID 改成你的真实 ID（或在可视化里改）
+#   3. 服务器已按 docs/CI-CD-order中厂自动化部署.md 放好 Dockerfile 与脚本
+# =============================================================================
+
+version: "1.0"
+name: order-cd
+displayName: Order-CD部署
+
+triggers:
+  push:
+    tags:
+      prefix:
+        - order-v
+
+# 主机组 ID：在 Gitee Go「计算资源 / 主机组」中创建后，改成真实 ID
+# （可视化流水线里改 hostGroupID 亦可）
+variables:
+  DEPLOY_NOTE: "请将下方 hostGroupID 改为你的主机组 ID"
+
+stages:
+  - stage: compile
+    displayName: 编译order
+    strategy: fast
+    trigger: auto
+    steps:
+      - step: build@maven
+        name: build_order
+        displayName: Maven打包order
+        jdkVersion: 17
+        mavenVersion: 3.6.3
+        commands:
+          - mvn -B -pl order-service -am -DskipTests package
+        artifacts:
+          - name: BUILD_ARTIFACT
+            path:
+              - ./order-service/target/order-service-3.6.0.jar
+
+  - stage: deploy
+    displayName: 部署到服务器
+    strategy: fast
+    # 阶段手动确认：即使 tag 触发了流水线，部署阶段仍需点一次（更稳）
+    trigger: manual
+    steps:
+      - step: deploy@agent
+        name: deploy_order_host
+        displayName: 主机部署order容器
+        hostGroupID: REPLACE_WITH_YOUR_HOST_GROUP_ID
+        deployArtifact:
+          - source: build
+            name: order-service-3.6.0.jar
+            target: /www/wwwroot/inventory-ms-backend/deploy/order-runtime
+            dependArtifact: BUILD_ARTIFACT
+        script: |
+          set -e
+          MS_HOME=/www/wwwroot/inventory-ms-backend
+          RUNTIME=$MS_HOME/deploy/order-runtime
+          # Agent 下载的产物有时是目录/压缩包，统一落到固定 jar 名
+          if [ -f "$RUNTIME/order-service-3.6.0.jar" ]; then
+            JAR="$RUNTIME/order-service-3.6.0.jar"
+          else
+            JAR=$(find "$RUNTIME" -name 'order-service-3.6.0.jar' -type f | head -n 1)
+          fi
+          if [ -z "$JAR" ] || [ ! -f "$JAR" ]; then
+            echo "错误：未找到 order-service-3.6.0.jar，目录内容："
+            ls -laR "$RUNTIME" || true
+            exit 1
+          fi
+          # 脚本随仓库维护；若服务器尚未同步，可用首次手工 scp
+          if [ ! -x "$MS_HOME/scripts/deploy-order-docker.sh" ] && [ -f "$MS_HOME/scripts/deploy-order-docker.sh" ]; then
+            chmod +x "$MS_HOME/scripts/deploy-order-docker.sh"
+          fi
+          bash "$MS_HOME/scripts/deploy-order-docker.sh" "$JAR"
